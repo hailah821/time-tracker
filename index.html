@@ -726,33 +726,48 @@ function startTimer() {
   }, 1000);
 }
 
-function completeTask() {
+async function completeTask() {
   clearInterval(timerInterval);
   const name = document.getElementById('workerSelect').value;
   const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), s = seconds%60;
   const dur = pad(h)+':'+pad(m)+':'+pad(s);
   document.getElementById('doneWorker').textContent = name;
   document.getElementById('doneSummary').textContent = selectedCatVal + ' — ' + dur;
-  // Add to log
-  const order = selectedCatVal==='Order' ? document.getElementById('orderInput').value : '—';
+  const order = selectedCatVal==='Order' ? document.getElementById('orderInput').value : null;
   const pill = selectedCatVal==='Order' ? '<span class="status-pill pill-order">Order</span>'
     : selectedCatVal==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
     : '<span class="status-pill pill-idle">Idle</span>';
   const now = new Date(); const timeStr = pad(now.getHours())+':'+pad(now.getMinutes());
   const logRow = document.createElement('tr');
-  logRow.innerHTML = `<td>${name}</td><td>${pill}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">${order}</td><td style="font-size:12px;">${timeStr}</td><td class="timer-cell">${dur}</td>`;
-  document.getElementById('logBody').insertBefore(logRow, document.getElementById('logBody').firstChild);
-  // Remove from live table
+  logRow.innerHTML = `<td>${name}</td><td>${pill}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">${order||'—'}</td><td style="font-size:12px;">${timeStr}</td><td class="timer-cell">${dur}</td>`;
+  const logBody = document.getElementById('logBody');
+  if (logBody) logBody.insertBefore(logRow, logBody.firstChild);
   const liveRow = document.getElementById('liveRow_'+name);
   if (liveRow) liveRow.remove();
+  // Save to Supabase
+  try {
+    await _supabase.from('sessions').insert({
+      worker_name: name,
+      category: selectedCatVal,
+      order_id: order,
+      duration_seconds: seconds,
+      started_at: new Date(Date.now() - seconds * 1000).toISOString(),
+      completed_at: new Date().toISOString()
+    });
+  } catch(e) { console.error('Supabase error:', e); }
   workerGoTo(5);
 }
+
 
 function pad(n) { return String(n).padStart(2,'0'); }
 
 function showAdmin() {
   document.getElementById('workerPage').classList.remove('active');
   document.getElementById('adminPage').classList.add('active');
+  updateUTR();
+  loadLog();
+  loadActiveOrders();
+  setInterval(updateUTR, 30000);
 }
 function showWorker() {
   document.getElementById('adminPage').classList.remove('active');
@@ -817,6 +832,93 @@ async function deleteOrder(id) {
     await _supabase.from('orders').update({ is_active: false }).eq('id', id);
     loadActiveOrders();
   } catch(e) {}
+}
+
+
+async function updateUTR() {
+  try {
+    const { data, error } = await _supabase.from('sessions')
+      .select('worker_name, category, duration_seconds, started_at');
+    
+    if (error) { console.error('Supabase error:', error); return; }
+    if (!data || data.length === 0) { console.log('No data in sessions'); return; }
+    
+    console.log('Sessions data:', data);
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayData = data.filter(s => new Date(s.started_at) >= today);
+    console.log('Today data:', todayData);
+    
+    const workdaySeconds = 8 * 3600;
+
+    const orderSeconds = todayData.filter(s => s.category === 'Order').reduce((a,b) => a + (b.duration_seconds||0), 0);
+    const utr = Math.min(100, Math.round((orderSeconds / workdaySeconds) * 100));
+    console.log('UTR:', utr, 'orderSeconds:', orderSeconds);
+    
+    const utrEl = document.getElementById('adminUtrVal');
+    if (utrEl) utrEl.textContent = utr + '%';
+    
+    const utrStatusEl = document.getElementById('utrStatus');
+    if (utrStatusEl) {
+      utrStatusEl.textContent = utr + '% ' + (utr >= 75 ? '✓' : '✗');
+      utrStatusEl.style.color = utr >= 75 ? '#484888' : '#EA435D';
+    }
+
+    const activeWorkers = [...new Set(todayData.map(s => s.worker_name))].length;
+    const activeEl = document.getElementById('adminActiveVal');
+    if (activeEl) activeEl.textContent = activeWorkers;
+
+    const orderCount = todayData.filter(s => s.category === 'Order').length;
+    const orderEl = document.getElementById('clientOrdersVal');
+    if (orderEl) orderEl.textContent = orderCount;
+
+    const idleWorkers = todayData.filter(s => s.category === 'Idle').map(s => s.worker_name);
+    const orderWorkers = todayData.filter(s => s.category === 'Order').map(s => s.worker_name);
+    const idleOnly = [...new Set(idleWorkers.filter(w => !orderWorkers.includes(w)))].length;
+    const idleEl = document.getElementById('adminIdleVal');
+    if (idleEl) idleEl.textContent = idleOnly;
+
+    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0,0,0,0);
+    const weekData = data.filter(s => new Date(s.started_at) >= weekStart && s.category === 'Order');
+    const weekByWorker = {};
+    weekData.forEach(s => { weekByWorker[s.worker_name] = (weekByWorker[s.worker_name] || 0) + 1; });
+    const weekEl = document.getElementById('weeklyOrdersBody');
+    if (weekEl) {
+      weekEl.innerHTML = '';
+      Object.entries(weekByWorker).forEach(([name, count]) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td style="padding:8px 0;font-size:13px;">${name}</td><td style="padding:8px 0;font-size:13px;font-family:var(--mono);color:#484888;font-weight:600;">${count}</td>`;
+        weekEl.appendChild(row);
+      });
+      if (Object.keys(weekByWorker).length === 0) {
+        weekEl.innerHTML = '<tr><td colspan="2" style="font-size:13px;color:var(--text3);padding:8px 0;">No orders this week yet</td></tr>';
+      }
+    }
+  } catch(e) { console.error('updateUTR error:', e); }
+}
+
+
+async function loadLog() {
+  try {
+    const { data } = await _supabase.from('sessions')
+      .select('*').order('completed_at', { ascending: false }).limit(20);
+    if (!data) return;
+    const logBody = document.getElementById('logBody');
+    if (!logBody) return;
+    logBody.innerHTML = '';
+    data.forEach(s => {
+      if (!s.duration_seconds) return;
+      const h = Math.floor(s.duration_seconds/3600), m = Math.floor((s.duration_seconds%3600)/60), sec = s.duration_seconds%60;
+      const dur = pad(h)+':'+pad(m)+':'+pad(sec);
+      const pill = s.category==='Order' ? '<span class="status-pill pill-order">Order</span>'
+        : s.category==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
+        : '<span class="status-pill pill-idle">Idle</span>';
+      const time = s.completed_at ? new Date(s.completed_at).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${s.worker_name}</td><td>${pill}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">${s.order_id||'—'}</td><td style="font-size:12px;">${time}</td><td class="timer-cell">${dur}</td>`;
+      logBody.appendChild(row);
+    });
+  } catch(e) { console.error('Log error:', e); }
 }
 
 </script>
