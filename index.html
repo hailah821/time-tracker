@@ -94,7 +94,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     color: var(--text); font-family: var(--font); font-size: 15px;
     margin-bottom: 20px; appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: left 14px center;
+    background-repeat: no-repeat; background-position: right 14px center;
     cursor: pointer; transition: border-color 0.2s;
   }
   .select-field:focus { outline: none; border-color: #484888; }
@@ -571,7 +571,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     </div>
   </div>
-  <button class="switch-btn" onclick="showWorker()">→ Worker View</button>
+  <button class="switch-btn" onclick="showWorker()">← Worker View</button>
 </div>
 
 <!-- Toast -->
