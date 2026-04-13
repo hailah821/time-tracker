@@ -353,11 +353,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       </div>
     </div>
     <div id="orderSelectWrap" style="display:none;">
-      <div class="field-label">Order Number</div>
-      <select class="select-field" id="orderSelect">
-        <option>ORD-1042</option><option>ORD-1043</option><option>ORD-1044</option>
-        <option>ORD-1045</option><option>ORD-1046</option>
-      </select>
+      <div class="field-label">Select Order</div>
+      <div id="prevOrdersItems" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+      <input type="hidden" id="orderInput">
     </div>
     <button class="btn-next primary-style" id="catNextBtn" onclick="catNext()" style="display:none;">Next →</button>
     <button class="btn-back" onclick="workerGoTo(2)">Back</button>
@@ -428,6 +426,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       <div class="nav-item" onclick="adminNav(this,'log')">
         <span class="nav-icon">≡</span> Session Log
       </div>
+      <div class="nav-item" onclick="adminNav(this,'createorder')">
+        <span class="nav-icon">+</span> Create Order
+      </div>
     </div>
 
     <!-- Main -->
@@ -451,15 +452,27 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             <div class="metric-sub">out of 2</div>
           </div>
           <div class="metric-card">
-            <div class="metric-label">Today's Orders</div>
-            <div class="metric-val">14</div>
-            <div class="metric-sub">3 in progress</div>
+            <div class="metric-label">Client Orders</div>
+            <div class="metric-val" id="clientOrdersVal">0</div>
+            <div class="metric-sub">today's count</div>
           </div>
           <div class="metric-card">
             <div class="metric-label">Idle Now</div>
             <div class="metric-val" style="color:#EA435D;" id="adminIdleVal">1</div>
             <div class="metric-sub">needs task assignment</div>
           </div>
+        </div>
+        <div class="dash-card" style="margin-bottom:20px;">
+          <div class="card-title">Weekly Orders — by Worker</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <th style="font-size:11px;color:var(--text3);text-align:left;padding:0 0 10px;font-weight:500;letter-spacing:0.5px;">WORKER</th>
+              <th style="font-size:11px;color:var(--text3);text-align:left;padding:0 0 10px;font-weight:500;letter-spacing:0.5px;">ORDERS THIS WEEK</th>
+            </tr>
+            <tbody id="weeklyOrdersBody">
+              <tr><td colspan="2" style="font-size:13px;color:var(--text3);padding:8px 0;">No orders this week yet</td></tr>
+            </tbody>
+          </table>
         </div>
         <div class="cards-row">
           <div class="dash-card">
@@ -553,6 +566,26 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         </div>
       </div>
 
+      <!-- Create Order -->
+      <div class="admin-tab-content" id="tab-createorder">
+        <div class="admin-header"><div class="admin-title" style="color:#484888;">Create Order</div></div>
+        <div class="dash-card" style="max-width:500px;">
+          <div class="card-title">Add New Order</div>
+          <div style="margin-bottom:16px;">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Order Name / Number</div>
+            <input type="text" id="newOrderInput" placeholder="e.g. ORD-1050 or Customer Name"
+              style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--font);font-size:14px;outline:none;">
+          </div>
+          <button onclick="addOrder()" style="width:100%;padding:13px;border-radius:10px;border:none;background:#484888;color:white;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;">+ Add Order</button>
+          <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
+            <div class="card-title">Active Orders</div>
+            <div id="activeOrdersList" style="display:flex;flex-direction:column;gap:8px;">
+              <p style="font-size:13px;color:var(--text3);">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Log -->
       <div class="admin-tab-content" id="tab-log">
         <div class="admin-header"><div class="admin-title">Session Log</div></div>
@@ -616,6 +649,36 @@ function selectCat(el, cat) {
   selectedCatVal = cat;
   document.getElementById('catNextBtn').style.display = 'block';
   document.getElementById('orderSelectWrap').style.display = cat === 'Order' ? 'block' : 'none';
+  if (cat === 'Order') loadPrevOrders();
+}
+
+async function loadPrevOrders() {
+  try {
+    const { data } = await _supabase.from('orders')
+      .select('order_name')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    const container = document.getElementById('prevOrdersItems');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p style="font-size:13px;color:var(--text3);">No orders available. Ask admin to add orders.</p>';
+      return;
+    }
+    data.forEach(order => {
+      const btn = document.createElement('div');
+      btn.className = 'cat-card';
+      btn.style.cursor = 'pointer';
+      btn.innerHTML = `<div class="cat-info"><div class="cat-name">${order.order_name}</div></div><div class="cat-radio"></div>`;
+      btn.onclick = () => {
+        document.querySelectorAll('#prevOrdersItems .cat-card').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        btn.querySelector('.cat-radio').style.cssText = 'width:18px;height:18px;border-radius:50%;border:2px solid #484888;background:#484888;display:flex;align-items:center;justify-content:center;';
+        document.getElementById('orderInput').value = order.order_name;
+      };
+      container.appendChild(btn);
+    });
+  } catch(e) { console.error(e); }
 }
 
 function catNext() {
@@ -624,11 +687,13 @@ function catNext() {
   document.getElementById('timerWorker').textContent = name;
   const badge = document.getElementById('timerBadge');
   if (selectedCatVal === 'Order') {
-    const ord = document.getElementById('orderSelect').value;
+    const inputVal = document.getElementById('orderInput').value.trim();
+    if (!inputVal) { showToast('Please enter an order name or number'); return; }
+    const ord = inputVal;
     badge.textContent = '📦 ' + ord;
     badge.style.cssText = 'background:rgba(72,72,136,0.10);color:#484888;border:1px solid rgba(72,72,136,0.3);display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:20px;';
     document.getElementById('timerOrderWrap').style.display = 'flex';
-    document.getElementById('timerOrder').textContent = ord;
+    document.getElementById('timerOrder').textContent = ord || document.getElementById('orderInput').value;
   } else if (selectedCatVal === 'Housekeeping') {
     badge.textContent = '🧹 Housekeeping';
     badge.style.cssText = 'background:var(--blue-dim);color:var(--blue);border:1px solid rgba(68,138,255,0.3);display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:20px;';
@@ -659,7 +724,7 @@ function startTimer() {
   }, 1000);
   // Add to live table
   const name = document.getElementById('workerSelect').value;
-  const pill = selectedCatVal==='Order' ? `<span class="status-pill pill-order">${document.getElementById('orderSelect').value}</span>`
+  const pill = selectedCatVal==='Order' ? `<span class="status-pill pill-order">${document.getElementById('orderInput').value}</span>`
     : selectedCatVal==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
     : '<span class="status-pill pill-idle">Idle</span>';
   const row = document.createElement('tr');
@@ -680,7 +745,7 @@ function completeTask() {
   document.getElementById('doneWorker').textContent = name;
   document.getElementById('doneSummary').textContent = selectedCatVal + ' — ' + dur;
   // Add to log
-  const order = selectedCatVal==='Order' ? document.getElementById('orderSelect').value : '—';
+  const order = selectedCatVal==='Order' ? document.getElementById('orderInput').value : '—';
   const pill = selectedCatVal==='Order' ? '<span class="status-pill pill-order">Order</span>'
     : selectedCatVal==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
     : '<span class="status-pill pill-idle">Idle</span>';
