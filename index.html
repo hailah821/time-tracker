@@ -353,7 +353,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       </div>
     </div>
     <div id="orderSelectWrap" style="display:none;">
-      <div class="field-label">رقم Order</div>
+      <div class="field-label">Order Number</div>
       <select class="select-field" id="orderSelect">
         <option>ORD-1042</option><option>ORD-1043</option><option>ORD-1044</option>
         <option>ORD-1045</option><option>ORD-1046</option>
@@ -502,7 +502,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         <div class="admin-header"><div class="admin-title">Live Status</div><div class="live-badge"><div class="live-dot"></div> Live</div></div>
         <div class="dash-card">
           <table class="worker-table" style="width:100%;">
-            <tr><th>Worker</th><th>Category</th><th>Order</th><th>مدة العمل</th><th>Status</th></tr>
+            <tr><th>Worker</th><th>Category</th><th>Order</th><th>Duration</th><th>Status</th></tr>
             <tbody>
               <tr><td>John Joel</td><td>Order</td><td style="font-family:var(--mono);font-size:12px;">ORD-1042</td><td class="timer-cell">00:24:10</td><td><span class="status-pill pill-order">Active</span></td></tr>
               <tr><td>Mozammel</td><td>Housekeeping</td><td>—</td><td class="timer-cell">00:08:33</td><td><span class="status-pill pill-house">Active</span></td></tr>
@@ -513,9 +513,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       <!-- Categories -->
       <div class="admin-tab-content" id="tab-categories">
-        <div class="admin-header"><div class="admin-title">توزيع Time By Category</div></div>
+        <div class="admin-header"><div class="admin-title">Time Distribution by Category</div></div>
         <div class="dash-card" style="max-width:500px;">
-          <div class="card-title">نسبة كل فئة من إجمالي Time</div>
+          <div class="card-title">Percentage of total time per category</div>
           <div class="bar-item">
             <div class="bar-info"><span class="name">📦 Orders</span><span class="pct" style="color:#484888;">78%</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:78%;background:#484888;"></div></div>
@@ -529,7 +529,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             <div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--surface3);border:1px solid var(--border2);"></div></div>
           </div>
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);">
-            Target: Orders should be <strong style="color:#484888;">75%+</strong> من Time الكلي
+            Target: Orders should be <strong style="color:#484888;">75%+</strong> of total time
           </div>
         </div>
       </div>
