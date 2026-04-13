@@ -788,6 +788,48 @@ function showToast(msg) {
 setInterval(() => {
   ['00:24:10','00:08:33','00:15:00','00:31:07'].forEach((t,i) => {});
 }, 1000);
+
+async function addOrder() {
+  const val = document.getElementById('newOrderInput').value.trim();
+  if (!val) { showToast('Please enter an order name'); return; }
+  try {
+    const { error } = await _supabase.from('orders').insert({ order_name: val });
+    if (error) { showToast('Error: ' + error.message); return; }
+    document.getElementById('newOrderInput').value = '';
+    showToast('Order added!');
+    loadActiveOrders();
+  } catch(e) { showToast('Error adding order'); }
+}
+
+async function loadActiveOrders() {
+  try {
+    const { data } = await _supabase.from('orders')
+      .select('*').eq('is_active', true)
+      .order('created_at', { ascending: false });
+    const container = document.getElementById('activeOrdersList');
+    if (!container) return;
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p style="font-size:13px;color:var(--text3);">No active orders yet</p>';
+      return;
+    }
+    container.innerHTML = '';
+    data.forEach(order => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:6px;';
+      row.innerHTML = `<span style="font-size:13px;font-weight:500;">${order.order_name}</span>
+        <button onclick="deleteOrder('${order.id}')" style="background:rgba(234,67,93,0.12);color:#EA435D;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">Remove</button>`;
+      container.appendChild(row);
+    });
+  } catch(e) { console.error(e); }
+}
+
+async function deleteOrder(id) {
+  try {
+    await _supabase.from('orders').update({ is_active: false }).eq('id', id);
+    loadActiveOrders();
+  } catch(e) {}
+}
+
 </script>
 </body>
 </html>
