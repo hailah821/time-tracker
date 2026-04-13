@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --surface3: #222222;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #555;
+    --green: #00e676;
+    --green-dim: rgba(0,230,118,0.12);
+    --green-dim2: rgba(0,230,118,0.2);
+    --red: #ff4444;
+    --red-dim: rgba(255,68,68,0.12);
+    --blue: #448aff;
+    --blue-dim: rgba(68,138,255,0.12);
+    --amber: #ffab40;
+    --amber-dim: rgba(255,171,64,0.12);
+    --font: 'IBM Plex Sans Arabic', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* ── PAGES ── */
+  .page { display: none; min-height: 100vh; }
+  .page.active { display: flex; flex-direction: column; }
+
+  /* ── WORKER APP ── */
+  .worker-wrap {
+    max-width: 420px; margin: 0 auto; width: 100%;
+    padding: 0 16px 40px; flex: 1; display: flex; flex-direction: column;
+  }
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0 16px;
+  }
+  .logo { font-family: var(--mono); font-size: 13px; color: var(--green); letter-spacing: 2px; }
+  .step-pills { display: flex; gap: 5px; }
+  .sp { width: 20px; height: 3px; border-radius: 2px; background: var(--surface3); transition: background 0.3s; }
+  .sp.done { background: var(--green); }
+  .sp.active { background: var(--green); opacity: 0.5; }
+
+  .screen-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; line-height: 1.3; }
+  .screen-sub { font-size: 14px; color: var(--text2); margin-bottom: 28px; }
+
+  /* QR box */
+  .qr-area {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; padding: 40px 0;
+  }
+  .qr-frame {
+    width: 200px; height: 200px; border: 2px solid var(--border2);
+    border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    position: relative; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .qr-frame:hover { border-color: var(--green); }
+  .qr-frame::before, .qr-frame::after {
+    content: ''; position: absolute;
+    width: 24px; height: 24px; border: 3px solid var(--green);
+  }
+  .qr-frame::before { top: -2px; right: -2px; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
+  .qr-frame::after { bottom: -2px; left: -2px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
+  .qr-inner { text-align: center; }
+  .qr-grid {
+    display: grid; grid-template-columns: repeat(7,10px); gap: 2px;
+    margin: 0 auto 8px;
+  }
+  .qr-cell { width: 10px; height: 10px; border-radius: 1px; }
+  .qr-scan-hint { font-size: 12px; color: var(--text3); }
+  .scan-btn-area { text-align: center; }
+
+  /* Inputs */
+  .field-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .select-field {
+    width: 100%; padding: 14px 16px; background: var(--surface2);
+    border: 1px solid var(--border2); border-radius: 10px;
+    color: var(--text); font-family: var(--font); font-size: 15px;
+    margin-bottom: 20px; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: left 14px center;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .select-field:focus { outline: none; border-color: var(--green); }
+  .select-field option { background: #1a1a1a; }
+
+  /* Category cards */
+  .cat-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+  .cat-card {
+    padding: 16px 18px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface2); cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .cat-card:hover { border-color: var(--border2); background: var(--surface3); }
+  .cat-card.selected { border-color: var(--green); background: var(--green-dim); }
+  .cat-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .cat-info { flex: 1; }
+  .cat-name { font-size: 15px; font-weight: 500; }
+  .cat-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .cat-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border2); flex-shrink: 0; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+  .cat-card.selected .cat-radio { border-color: var(--green); background: var(--green); }
+  .cat-card.selected .cat-radio::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #000; }
+
+  /* Timer screen */
+  .timer-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 24px; margin-bottom: 20px; text-align: center;
+  }
+  .timer-cat-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    margin-bottom: 20px;
+  }
+  .timer-digits {
+    font-family: var(--mono); font-size: 52px; font-weight: 400;
+    letter-spacing: 4px; color: var(--green); line-height: 1;
+    margin-bottom: 20px;
+  }
+  .timer-meta { display: flex; justify-content: center; gap: 24px; }
+  .timer-meta-item { text-align: center; }
+  .timer-meta-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .timer-meta-val { font-size: 14px; font-weight: 500; }
+
+  /* Buttons */
+  .btn-primary {
+    width: 100%; padding: 15px; border-radius: 12px; border: none;
+    font-family: var(--font); font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; letter-spacing: 0.3px;
+  }
+  .btn-start { background: var(--green); color: #000; }
+  .btn-start:hover { background: #00ff88; transform: translateY(-1px); }
+  .btn-complete { background: var(--red); color: white; }
+  .btn-complete:hover { background: #ff6666; }
+  .btn-next {
+    width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border2);
+    background: var(--surface3); color: var(--text); font-family: var(--font);
+    font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.15s; margin-bottom: 10px;
+  }
+  .btn-next:hover { background: var(--surface2); border-color: var(--green); color: var(--green); }
+  .btn-next.primary-style { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .btn-back {
+    width: 100%; padding: 12px; border-radius: 10px; border: none;
+    background: transparent; color: var(--text3); font-family: var(--font);
+    font-size: 14px; cursor: pointer; transition: color 0.15s;
+  }
+  .btn-back:hover { color: var(--text2); }
+
+  /* Done screen */
+  .done-circle {
+    width: 80px; height: 80px; border-radius: 50%; background: var(--green-dim);
+    border: 2px solid var(--green); display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px; font-size: 32px;
+  }
+
+  /* ── ADMIN DASHBOARD ── */
+  .admin-layout { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar {
+    width: 220px; background: var(--surface); border-left: 1px solid var(--border);
+    flex-shrink: 0; display: flex; flex-direction: column; padding: 24px 0;
+  }
+  .sidebar-logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .sidebar-logo .logo { font-size: 14px; }
+  .sidebar-logo p { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+    font-size: 13px; color: var(--text2); cursor: pointer; transition: all 0.15s;
+    border-right: 2px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--green); border-right-color: var(--green); background: var(--green-dim); }
+  .nav-icon { width: 16px; text-align: center; }
+  .main-content { flex: 1; overflow-y: auto; padding: 32px; }
+  .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .admin-title { font-size: 22px; font-weight: 600; }
+  .live-badge { display: flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--green-dim); border: 1px solid var(--green); border-radius: 20px; font-size: 12px; color: var(--green); }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Metrics */
+  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  .metric-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 20px;
+  }
+  .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .metric-val { font-size: 28px; font-weight: 600; font-family: var(--mono); line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--text2); margin-top: 6px; }
+  .metric-utr .metric-val { color: var(--green); }
+
+  /* Cards row */
+  .cards-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
+
+  /* Live workers table */
+  .worker-table { width: 100%; border-collapse: collapse; }
+  .worker-table th { font-size: 11px; color: var(--text3); text-align: right; padding: 0 0 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .worker-table td { padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  .worker-table tr:first-child td { border-top: none; }
+  .status-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .pill-order { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .pill-idle { background: var(--surface3); color: var(--text2); border: 1px solid var(--border); }
+  .pill-house { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(68,138,255,0.3); }
+  .timer-cell { font-family: var(--mono); font-size: 13px; color: var(--text2); }
+
+  /* Bar charts */
+  .bar-item { margin-bottom: 14px; }
+  .bar-info { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  .bar-info .name { color: var(--text2); }
+  .bar-info .pct { font-family: var(--mono); font-weight: 600; }
+  .bar-track { height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+
+  /* Sessions log */
+  .log-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .log-table th { font-size: 11px; color: var(--text3); text-align: right; padding: 0 0 10px; font-weight: 500; letter-spacing: 0.5px; }
+  .log-table td { padding: 10px 0; border-top: 1px solid var(--border); color: var(--text2); }
+  .log-table td:first-child { color: var(--text); font-weight: 500; }
+
+  /* UTR donut */
+  .utr-display { display: flex; align-items: center; gap: 20px; }
+  .donut-wrap { position: relative; width: 90px; height: 90px; flex-shrink: 0; }
+  .donut-wrap svg { transform: rotate(-90deg); }
+  .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .donut-pct { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--green); }
+  .donut-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; }
+  .utr-legend { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .utr-leg-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .utr-leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Tab navigation */
+  .admin-tabs { display: none; }
+  .admin-tab-content { display: none; }
+  .admin-tab-content.active { display: block; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px;
+    padding: 12px 20px; font-size: 14px; color: var(--text);
+    transition: transform 0.3s ease; z-index: 100; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Switch page btn */
+  .switch-btn {
+    position: fixed; bottom: 20px; left: 20px;
+    padding: 8px 16px; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 20px; font-family: var(--font); font-size: 12px; color: var(--text2);
+    cursor: pointer; z-index: 50; transition: all 0.15s;
+  }
+  .switch-btn:hover { border-color: var(--green); color: var(--green); }
+
+  @media (max-width: 700px) {
+    .metrics-row { grid-template-columns: 1fr 1fr; }
+    .cards-row { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .main-content { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ WORKER PAGE ═══════════════════ -->
+<div class="page active" id="workerPage">
+
+  <!-- S1: QR Scan -->
+  <div class="worker-wrap" id="ws1" style="display:flex;">
+    <div class="top-bar">
+      <span class="logo">TIME TRACK</span>
+      <div class="step-pills">
+        <div class="sp active" id="sp1a"></div><div class="sp" id="sp2a"></div>
+        <div class="sp" id="sp3a"></div><div class="sp" id="sp4a"></div>
+      </div>
+    </div>
+    <div class="qr-area">
+      <div class="qr-frame" onclick="workerGoTo(2)">
+        <div class="qr-inner">
+          <div class="qr-grid" id="qrGrid"></div>
+          <div class="qr-scan-hint">اضغط للمسح</div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--text3);text-align:center;">امسح رمز QR المثبت<br>على محطة العمل</p>
+    </div>
+    <button class="btn-primary btn-start" onclick="workerGoTo(2)">محاكاة المسح ← ابدأ</button>
+  </div>
+
+  <!-- S2: Select Name -->
+  <div class="worker-wrap" id="ws2" style="display:none;">
+    <div class="top-bar">
+      <span class="logo">TIME TRACK</span>
+      <div class="step-pills">
+        <div class="sp done"></div><div class="sp active"></div>
+        <div class="sp"></div><div class="sp"></div>
+      </div>
+    </div>
+    <p class="screen-title">مرحباً 👋</p>
+    <p class="screen-sub">اختر اسمك للمتابعة</p>
+    <div class="field-label">الاسم</div>
+    <select class="select-field" id="workerSelect">
+      <option value="">-- اختر اسمك --</option>
+      <option>جويل</option><option>مزمل</option>
+    </select>
+    <button class="btn-next primary-style" onclick="nameNext()">التالي ←</button>
+    <button class="btn-back" onclick="workerGoTo(1)">رجوع</button>
+  </div>
+
+  <!-- S3: Select Category -->
+  <div class="worker-wrap" id="ws3" style="display:none;">
+    <div class="top-bar">
+      <span class="logo">TIME TRACK</span>
+      <div class="step-pills">
+        <div class="sp done"></div><div class="sp done"></div>
+        <div class="sp active"></div><div class="sp"></div>
+      </div>
+    </div>
+    <p class="screen-title">ماذا ستعمل؟</p>
+    <p class="screen-sub">اختر نوع المهمة</p>
+    <div class="cat-grid">
+      <div class="cat-card" onclick="selectCat(this,'Idle')" data-cat="Idle">
+        <div class="cat-icon" style="background:rgba(136,135,128,0.15);">⏸</div>
+        <div class="cat-info"><div class="cat-name">Idle</div><div class="cat-desc">متاح — لا يوجد عمل معيّن</div></div>
+        <div class="cat-radio"></div>
+      </div>
+      <div class="cat-card" onclick="selectCat(this,'Housekeeping')" data-cat="Housekeeping">
+        <div class="cat-icon" style="background:var(--blue-dim);">🧹</div>
+        <div class="cat-info"><div class="cat-name">Housekeeping</div><div class="cat-desc">تنظيف وترتيب المستودع</div></div>
+        <div class="cat-radio"></div>
+      </div>
+      <div class="cat-card" onclick="selectCat(this,'Order')" data-cat="Order">
+        <div class="cat-icon" style="background:var(--green-dim);">📦</div>
+        <div class="cat-info"><div class="cat-name">Order</div><div class="cat-desc">العمل على طلب عميل</div></div>
+        <div class="cat-radio"></div>
+      </div>
+    </div>
+    <div id="orderSelectWrap" style="display:none;">
+      <div class="field-label">رقم الطلب</div>
+      <select class="select-field" id="orderSelect">
+        <option>ORD-1042</option><option>ORD-1043</option><option>ORD-1044</option>
+        <option>ORD-1045</option><option>ORD-1046</option>
+      </select>
+    </div>
+    <button class="btn-next primary-style" id="catNextBtn" onclick="catNext()" style="display:none;">التالي ←</button>
+    <button class="btn-back" onclick="workerGoTo(2)">رجوع</button>
+  </div>
+
+  <!-- S4: Timer -->
+  <div class="worker-wrap" id="ws4" style="display:none;">
+    <div class="top-bar">
+      <span class="logo">TIME TRACK</span>
+      <div class="step-pills">
+        <div class="sp done"></div><div class="sp done"></div>
+        <div class="sp done"></div><div class="sp active"></div>
+      </div>
+    </div>
+    <div class="timer-card">
+      <div class="timer-cat-badge" id="timerBadge">—</div>
+      <div class="timer-digits" id="timerDigits">00:00:00</div>
+      <div class="timer-meta">
+        <div class="timer-meta-item">
+          <div class="timer-meta-label">العامل</div>
+          <div class="timer-meta-val" id="timerWorker">—</div>
+        </div>
+        <div class="timer-meta-item" id="timerOrderWrap" style="display:none;">
+          <div class="timer-meta-label">الطلب</div>
+          <div class="timer-meta-val" id="timerOrder">—</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary btn-start" id="startBtn" onclick="startTimer()">▶ ابدأ المهمة</button>
+    <button class="btn-primary btn-complete" id="completeBtn" onclick="completeTask()" style="display:none;">■ إنهاء المهمة</button>
+    <button class="btn-back" id="backBtn4" onclick="workerGoTo(3)">رجوع</button>
+  </div>
+
+  <!-- S5: Done -->
+  <div class="worker-wrap" id="ws5" style="display:none;align-items:center;justify-content:center;text-align:center;">
+    <div class="done-circle">✓</div>
+    <p style="font-size:22px;font-weight:600;margin-bottom:8px;">تم التسجيل!</p>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:8px;" id="doneWorker">—</p>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:32px;" id="doneSummary">—</p>
+    <button class="btn-next primary-style" onclick="workerGoTo(1)" style="width:260px;">مهمة جديدة +</button>
+  </div>
+
+  <button class="switch-btn" onclick="showAdmin()">داشبورد الإدمن →</button>
+</div>
+
+<!-- ═══════════════════ ADMIN PAGE ═══════════════════ -->
+<div class="page" id="adminPage">
+  <div class="admin-layout">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo">TIME TRACK</div>
+        <p>لوحة التحكم</p>
+      </div>
+      <div class="nav-item active" onclick="adminNav(this,'overview')">
+        <span class="nav-icon">◉</span> نظرة عامة
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'live')">
+        <span class="nav-icon">⬤</span> الحالة المباشرة
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'categories')">
+        <span class="nav-icon">◈</span> حسب الفئة
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'users')">
+        <span class="nav-icon">◎</span> حسب العامل
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'log')">
+        <span class="nav-icon">≡</span> سجل الجلسات
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main-content">
+
+      <!-- Overview -->
+      <div class="admin-tab-content active" id="tab-overview">
+        <div class="admin-header">
+          <div class="admin-title">نظرة عامة</div>
+          <div class="live-badge"><div class="live-dot"></div> مباشر</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metric-card metric-utr">
+            <div class="metric-label">UTR الإجمالي</div>
+            <div class="metric-val" id="adminUtrVal">78%</div>
+            <div class="metric-sub">الهدف: 75%+ ✓</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">عمال نشطون</div>
+            <div class="metric-val" id="adminActiveVal">4</div>
+            <div class="metric-sub">من أصل 6</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">طلبات اليوم</div>
+            <div class="metric-val">14</div>
+            <div class="metric-sub">3 قيد التنفيذ</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Idle الآن</div>
+            <div class="metric-val" style="color:var(--amber);" id="adminIdleVal">1</div>
+            <div class="metric-sub">يحتاج تعيين مهمة</div>
+          </div>
+        </div>
+        <div class="cards-row">
+          <div class="dash-card">
+            <div class="card-title">UTR — توزيع الوقت</div>
+            <div class="utr-display">
+              <div class="donut-wrap">
+                <svg width="90" height="90" viewBox="0 0 90 90">
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="#222" stroke-width="10"/>
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="#00e676" stroke-width="10"
+                    stroke-dasharray="226 290" stroke-linecap="round"/>
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="#448aff" stroke-width="10"
+                    stroke-dasharray="37 290" stroke-dashoffset="-226" stroke-linecap="round"/>
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="#333" stroke-width="10"
+                    stroke-dasharray="27 290" stroke-dashoffset="-263" stroke-linecap="round"/>
+                </svg>
+                <div class="donut-center"><div class="donut-pct">78%</div><div class="donut-lbl">UTR</div></div>
+              </div>
+              <div class="utr-legend">
+                <div class="utr-leg-item"><div class="utr-leg-dot" style="background:var(--green);"></div><span style="color:var(--text2);">Orders</span><span style="margin-right:auto;font-family:var(--mono);font-size:12px;color:var(--green);">78%</span></div>
+                <div class="utr-leg-item"><div class="utr-leg-dot" style="background:var(--blue);"></div><span style="color:var(--text2);">Housekeeping</span><span style="margin-right:auto;font-family:var(--mono);font-size:12px;color:var(--blue);">13%</span></div>
+                <div class="utr-leg-item"><div class="utr-leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="color:var(--text2);">Idle</span><span style="margin-right:auto;font-family:var(--mono);font-size:12px;color:var(--text2);">9%</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="dash-card">
+            <div class="card-title">الحالة المباشرة</div>
+            <table class="worker-table">
+              <tr><th>العامل</th><th>الحالة</th><th>الوقت</th></tr>
+              <tbody id="liveTableBody">
+                <tr><td>جويل</td><td><span class="status-pill pill-order">Order ORD-1042</span></td><td class="timer-cell">00:24:10</td></tr>
+                <tr><td>مزمل</td><td><span class="status-pill pill-house">Housekeeping</span></td><td class="timer-cell">00:08:33</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live -->
+      <div class="admin-tab-content" id="tab-live">
+        <div class="admin-header"><div class="admin-title">الحالة المباشرة</div><div class="live-badge"><div class="live-dot"></div> مباشر</div></div>
+        <div class="dash-card">
+          <table class="worker-table" style="width:100%;">
+            <tr><th>العامل</th><th>الفئة</th><th>الطلب</th><th>مدة العمل</th><th>الحالة</th></tr>
+            <tbody>
+              <tr><td>جويل</td><td>Order</td><td style="font-family:var(--mono);font-size:12px;">ORD-1042</td><td class="timer-cell">00:24:10</td><td><span class="status-pill pill-order">نشط</span></td></tr>
+              <tr><td>مزمل</td><td>Housekeeping</td><td>—</td><td class="timer-cell">00:08:33</td><td><span class="status-pill pill-house">نشط</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="admin-tab-content" id="tab-categories">
+        <div class="admin-header"><div class="admin-title">توزيع الوقت حسب الفئة</div></div>
+        <div class="dash-card" style="max-width:500px;">
+          <div class="card-title">نسبة كل فئة من إجمالي الوقت</div>
+          <div class="bar-item">
+            <div class="bar-info"><span class="name">📦 Orders</span><span class="pct" style="color:var(--green);">78%</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:78%;background:var(--green);"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-info"><span class="name">🧹 Housekeeping</span><span class="pct" style="color:var(--blue);">13%</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:13%;background:var(--blue);"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-info"><span class="name">⏸ Idle</span><span class="pct" style="color:var(--text2);">9%</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--surface3);border:1px solid var(--border2);"></div></div>
+          </div>
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);">
+            الهدف: Orders يجب أن يكون <strong style="color:var(--green);">75%+</strong> من الوقت الكلي
+          </div>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div class="admin-tab-content" id="tab-users">
+        <div class="admin-header"><div class="admin-title">UTR حسب العامل</div></div>
+        <div class="dash-card" style="max-width:500px;">
+          <div class="card-title">نسبة الاستخدام الفعلي لكل عامل</div>
+          <div class="bar-item">
+            <div class="bar-info"><span class="name">جويل</span><span class="pct" style="color:var(--green);">92%</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:92%;background:var(--green);"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-info"><span class="name">مزمل</span><span class="pct" style="color:var(--green);">85%</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:85%;background:var(--green);"></div></div>
+          </div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
+            الخط الأحمر: أقل من 75% يحتاج متابعة
+          </div>
+        </div>
+      </div>
+
+      <!-- Log -->
+      <div class="admin-tab-content" id="tab-log">
+        <div class="admin-header"><div class="admin-title">سجل الجلسات</div></div>
+        <div class="dash-card">
+          <table class="log-table" style="width:100%;">
+            <tr><th>العامل</th><th>الفئة</th><th>الطلب</th><th>البداية</th><th>المدة</th></tr>
+            <tbody id="logBody">
+              <tr><td>جويل</td><td><span class="status-pill pill-order">Order</span></td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">ORD-1040</td><td style="font-size:12px;">09:15</td><td class="timer-cell">00:42:18</td></tr>
+              <tr><td>مزمل</td><td><span class="status-pill pill-house">Housekeeping</span></td><td>—</td><td style="font-size:12px;">09:30</td><td class="timer-cell">00:22:05</td></tr>
+              <tr><td>جويل</td><td><span class="status-pill pill-order">Order</span></td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">ORD-1038</td><td style="font-size:12px;">08:45</td><td class="timer-cell">01:05:30</td></tr>
+              <tr><td>مزمل</td><td><span class="status-pill pill-order">Order</span></td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">ORD-1039</td><td style="font-size:12px;">08:00</td><td class="timer-cell">01:12:44</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <button class="switch-btn" onclick="showWorker()">← واجهة العامل</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// QR grid
+const qrPattern = [1,0,1,1,0,1,0, 0,1,0,1,1,0,1, 1,1,0,0,1,0,1, 0,0,1,0,1,1,0, 1,0,1,1,0,0,1, 0,1,0,0,1,0,1, 1,0,1,1,0,1,0];
+const grid = document.getElementById('qrGrid');
+qrPattern.forEach(v => {
+  const c = document.createElement('div');
+  c.className = 'qr-cell';
+  c.style.background = v ? 'var(--green)' : 'transparent';
+  grid.appendChild(c);
+});
+
+// State
+let selectedCatVal = '';
+let timerInterval = null;
+let seconds = 0;
+let sessions = [];
+
+function workerGoTo(n) {
+  for (let i=1;i<=5;i++) {
+    const el = document.getElementById('ws'+i);
+    if (el) el.style.display = 'none';
+  }
+  const target = document.getElementById('ws'+n);
+  if (target) target.style.display = n===5 ? 'flex' : 'flex';
+  target.style.flexDirection = 'column';
+}
+
+function nameNext() {
+  const v = document.getElementById('workerSelect').value;
+  if (!v) { showToast('اختر اسمك أولاً'); return; }
+  workerGoTo(3);
+}
+
+function selectCat(el, cat) {
+  document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCatVal = cat;
+  document.getElementById('catNextBtn').style.display = 'block';
+  document.getElementById('orderSelectWrap').style.display = cat === 'Order' ? 'block' : 'none';
+}
+
+function catNext() {
+  if (!selectedCatVal) { showToast('اختر نوع المهمة'); return; }
+  const name = document.getElementById('workerSelect').value;
+  document.getElementById('timerWorker').textContent = name;
+  const badge = document.getElementById('timerBadge');
+  if (selectedCatVal === 'Order') {
+    const ord = document.getElementById('orderSelect').value;
+    badge.textContent = '📦 ' + ord;
+    badge.style.cssText = 'background:var(--green-dim);color:var(--green);border:1px solid rgba(0,230,118,0.3);display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:20px;';
+    document.getElementById('timerOrderWrap').style.display = 'flex';
+    document.getElementById('timerOrder').textContent = ord;
+  } else if (selectedCatVal === 'Housekeeping') {
+    badge.textContent = '🧹 Housekeeping';
+    badge.style.cssText = 'background:var(--blue-dim);color:var(--blue);border:1px solid rgba(68,138,255,0.3);display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:20px;';
+    document.getElementById('timerOrderWrap').style.display = 'none';
+  } else {
+    badge.textContent = '⏸ Idle';
+    badge.style.cssText = 'background:var(--surface3);color:var(--text2);border:1px solid var(--border2);display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:20px;';
+    document.getElementById('timerOrderWrap').style.display = 'none';
+  }
+  seconds = 0;
+  document.getElementById('timerDigits').textContent = '00:00:00';
+  document.getElementById('startBtn').style.display = 'block';
+  document.getElementById('completeBtn').style.display = 'none';
+  document.getElementById('backBtn4').style.display = 'block';
+  if (timerInterval) clearInterval(timerInterval);
+  workerGoTo(4);
+}
+
+function startTimer() {
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('completeBtn').style.display = 'block';
+  document.getElementById('backBtn4').style.display = 'none';
+  timerInterval = setInterval(() => {
+    seconds++;
+    const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), s = seconds%60;
+    document.getElementById('timerDigits').textContent =
+      pad(h)+':'+pad(m)+':'+pad(s);
+  }, 1000);
+  // Add to live table
+  const name = document.getElementById('workerSelect').value;
+  const pill = selectedCatVal==='Order' ? `<span class="status-pill pill-order">${document.getElementById('orderSelect').value}</span>`
+    : selectedCatVal==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
+    : '<span class="status-pill pill-idle">Idle</span>';
+  const row = document.createElement('tr');
+  row.id = 'liveRow_'+name;
+  row.innerHTML = `<td>${name}</td><td>${pill}</td><td class="timer-cell" id="liveTime_${name}">00:00:00</td>`;
+  document.getElementById('liveTableBody').appendChild(row);
+  setInterval(() => {
+    const el = document.getElementById('liveTime_'+name);
+    if (el) el.textContent = document.getElementById('timerDigits').textContent;
+  }, 1000);
+}
+
+function completeTask() {
+  clearInterval(timerInterval);
+  const name = document.getElementById('workerSelect').value;
+  const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), s = seconds%60;
+  const dur = pad(h)+':'+pad(m)+':'+pad(s);
+  document.getElementById('doneWorker').textContent = name;
+  document.getElementById('doneSummary').textContent = selectedCatVal + ' — ' + dur;
+  // Add to log
+  const order = selectedCatVal==='Order' ? document.getElementById('orderSelect').value : '—';
+  const pill = selectedCatVal==='Order' ? '<span class="status-pill pill-order">Order</span>'
+    : selectedCatVal==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
+    : '<span class="status-pill pill-idle">Idle</span>';
+  const now = new Date(); const timeStr = pad(now.getHours())+':'+pad(now.getMinutes());
+  const logRow = document.createElement('tr');
+  logRow.innerHTML = `<td>${name}</td><td>${pill}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">${order}</td><td style="font-size:12px;">${timeStr}</td><td class="timer-cell">${dur}</td>`;
+  document.getElementById('logBody').insertBefore(logRow, document.getElementById('logBody').firstChild);
+  // Remove from live table
+  const liveRow = document.getElementById('liveRow_'+name);
+  if (liveRow) liveRow.remove();
+  workerGoTo(5);
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function showAdmin() {
+  document.getElementById('workerPage').classList.remove('active');
+  document.getElementById('adminPage').classList.add('active');
+}
+function showWorker() {
+  document.getElementById('adminPage').classList.remove('active');
+  document.getElementById('workerPage').classList.add('active');
+}
+
+function adminNav(el, tab) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.admin-tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Simulate live timer ticks for existing workers
+setInterval(() => {
+  ['00:24:10','00:08:33','00:15:00','00:31:07'].forEach((t,i) => {});
+}, 1000);
+</script>
+</body>
+</html>
