@@ -745,15 +745,19 @@ async function completeTask() {
   const liveRow = document.getElementById('liveRow_'+name);
   if (liveRow) liveRow.remove();
   // Save to Supabase
+  const categoryToSave = selectedCatVal || 'Unknown';
+  const orderToSave = categoryToSave === 'Order' ? (document.getElementById('orderInput').value || null) : null;
   try {
-    await _supabase.from('sessions').insert({
+    const { error } = await _supabase.from('sessions').insert({
       worker_name: name,
-      category: selectedCatVal,
-      order_id: order,
+      category: categoryToSave,
+      order_id: orderToSave,
       duration_seconds: seconds,
       started_at: new Date(Date.now() - seconds * 1000).toISOString(),
       completed_at: new Date().toISOString()
     });
+    if (error) console.error('Insert error:', error);
+    else console.log('Saved! category:', categoryToSave);
   } catch(e) { console.error('Supabase error:', e); }
   workerGoTo(5);
 }
