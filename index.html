@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +10,7 @@ const SUPABASE_URL = 'https://vuuamwlrnyobhlxtblzk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-TqYC3XjS5ZBu3Zi4kgRBQ_KjJxaXXq';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f5f4f8;
@@ -31,7 +31,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     --blue-dim: rgba(138,75,94,0.12);
     --amber: #ECC371;
     --amber-dim: rgba(236,195,113,0.20);
-    --font: 'IBM Plex Sans Arabic', sans-serif;
+    --font: 'Inter', 'Segoe UI', sans-serif;
     --mono: 'JetBrains Mono', monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -296,12 +296,12 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       <div class="qr-frame" onclick="workerGoTo(2)">
         <div class="qr-inner">
           <div class="qr-grid" id="qrGrid"></div>
-          <div class="qr-scan-hint">اضغط للمسح</div>
+          <div class="qr-scan-hint">Tap to scan</div>
         </div>
       </div>
-      <p style="font-size:13px;color:var(--text3);text-align:center;">امسح رمز QR المثبت<br>على محطة العمل</p>
+      <p style="font-size:13px;color:var(--text3);text-align:center;">Scan the QR code at<br>your workstation</p>
     </div>
-    <button class="btn-primary btn-start" onclick="workerGoTo(2)">محاكاة المسح ← ابدأ</button>
+    <button class="btn-primary btn-start" onclick="workerGoTo(2)">Simulate Scan → Start</button>
   </div>
 
   <!-- S2: Select Name -->
@@ -313,15 +313,15 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         <div class="sp"></div><div class="sp"></div>
       </div>
     </div>
-    <p class="screen-title">مرحباً 👋</p>
-    <p class="screen-sub">اختر اسمك للمتابعة</p>
-    <div class="field-label">الاسم</div>
+    <p class="screen-title">Welcome 👋</p>
+    <p class="screen-sub">Select your name to continue</p>
+    <div class="field-label">Name</div>
     <select class="select-field" id="workerSelect">
       <option value="">-- Select Your Name --</option>
       <option>John Joel</option><option>Mozammel</option>
     </select>
-    <button class="btn-next primary-style" onclick="nameNext()">التالي ←</button>
-    <button class="btn-back" onclick="workerGoTo(1)">رجوع</button>
+    <button class="btn-next primary-style" onclick="nameNext()">Next →</button>
+    <button class="btn-back" onclick="workerGoTo(1)">Back</button>
   </div>
 
   <!-- S3: Select Category -->
@@ -333,34 +333,34 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         <div class="sp active"></div><div class="sp"></div>
       </div>
     </div>
-    <p class="screen-title">ماذا ستعمل؟</p>
-    <p class="screen-sub">اختر نوع المهمة</p>
+    <p class="screen-title">What will you work on?</p>
+    <p class="screen-sub">Select task type</p>
     <div class="cat-grid">
       <div class="cat-card" onclick="selectCat(this,'Idle')" data-cat="Idle">
         <div class="cat-icon" style="background:rgba(136,135,128,0.15);">⏸</div>
-        <div class="cat-info"><div class="cat-name">Idle</div><div class="cat-desc">متاح — لا يوجد عمل معيّن</div></div>
+        <div class="cat-info"><div class="cat-name">Idle</div><div class="cat-desc">Available — no task assigned</div></div>
         <div class="cat-radio"></div>
       </div>
       <div class="cat-card" onclick="selectCat(this,'Housekeeping')" data-cat="Housekeeping">
         <div class="cat-icon" style="background:var(--blue-dim);">🧹</div>
-        <div class="cat-info"><div class="cat-name">Housekeeping</div><div class="cat-desc">تنظيف وترتيب المستودع</div></div>
+        <div class="cat-info"><div class="cat-name">Housekeeping</div><div class="cat-desc">Cleaning and organizing</div></div>
         <div class="cat-radio"></div>
       </div>
       <div class="cat-card" onclick="selectCat(this,'Order')" data-cat="Order">
         <div class="cat-icon" style="background:var(--green-dim);">📦</div>
-        <div class="cat-info"><div class="cat-name">Order</div><div class="cat-desc">العمل على طلب عميل</div></div>
+        <div class="cat-info"><div class="cat-name">Order</div><div class="cat-desc">Working on a customer order</div></div>
         <div class="cat-radio"></div>
       </div>
     </div>
     <div id="orderSelectWrap" style="display:none;">
-      <div class="field-label">رقم الطلب</div>
+      <div class="field-label">رقم Order</div>
       <select class="select-field" id="orderSelect">
         <option>ORD-1042</option><option>ORD-1043</option><option>ORD-1044</option>
         <option>ORD-1045</option><option>ORD-1046</option>
       </select>
     </div>
-    <button class="btn-next primary-style" id="catNextBtn" onclick="catNext()" style="display:none;">التالي ←</button>
-    <button class="btn-back" onclick="workerGoTo(2)">رجوع</button>
+    <button class="btn-next primary-style" id="catNextBtn" onclick="catNext()" style="display:none;">Next →</button>
+    <button class="btn-back" onclick="workerGoTo(2)">Back</button>
   </div>
 
   <!-- S4: Timer -->
@@ -377,30 +377,30 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       <div class="timer-digits" id="timerDigits">00:00:00</div>
       <div class="timer-meta">
         <div class="timer-meta-item">
-          <div class="timer-meta-label">العامل</div>
+          <div class="timer-meta-label">Worker</div>
           <div class="timer-meta-val" id="timerWorker">—</div>
         </div>
         <div class="timer-meta-item" id="timerOrderWrap" style="display:none;">
-          <div class="timer-meta-label">الطلب</div>
+          <div class="timer-meta-label">Order</div>
           <div class="timer-meta-val" id="timerOrder">—</div>
         </div>
       </div>
     </div>
-    <button class="btn-primary btn-start" id="startBtn" onclick="startTimer()">▶ ابدأ المهمة</button>
-    <button class="btn-primary btn-complete" id="completeBtn" onclick="completeTask()" style="display:none;">■ إنهاء المهمة</button>
-    <button class="btn-back" id="backBtn4" onclick="workerGoTo(3)">رجوع</button>
+    <button class="btn-primary btn-start" id="startBtn" onclick="startTimer()">▶ Start Task</button>
+    <button class="btn-primary btn-complete" id="completeBtn" onclick="completeTask()" style="display:none;">■ Complete Task</button>
+    <button class="btn-back" id="backBtn4" onclick="workerGoTo(3)">Back</button>
   </div>
 
   <!-- S5: Done -->
   <div class="worker-wrap" id="ws5" style="display:none;align-items:center;justify-content:center;text-align:center;">
     <div class="done-circle">✓</div>
-    <p style="font-size:22px;font-weight:600;margin-bottom:8px;">تم التسجيل!</p>
+    <p style="font-size:22px;font-weight:600;margin-bottom:8px;">Recorded!</p>
     <p style="font-size:14px;color:var(--text2);margin-bottom:8px;" id="doneWorker">—</p>
     <p style="font-size:13px;color:var(--text3);margin-bottom:32px;" id="doneSummary">—</p>
-    <button class="btn-next primary-style" onclick="workerGoTo(1)" style="width:260px;">مهمة جديدة +</button>
+    <button class="btn-next primary-style" onclick="workerGoTo(1)" style="width:260px;">New Task +</button>
   </div>
 
-  <button class="switch-btn" onclick="showAdmin()">داشبورد الإدمن →</button>
+  <button class="switch-btn" onclick="showAdmin()">Admin Dashboard →</button>
 </div>
 
 <!-- ═══════════════════ ADMIN PAGE ═══════════════════ -->
@@ -414,19 +414,19 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         <p>لوحة التحكم</p>
       </div>
       <div class="nav-item active" onclick="adminNav(this,'overview')">
-        <span class="nav-icon">◉</span> نظرة عامة
+        <span class="nav-icon">◉</span> Overview
       </div>
       <div class="nav-item" onclick="adminNav(this,'live')">
-        <span class="nav-icon">⬤</span> الحالة المباشرة
+        <span class="nav-icon">⬤</span> Live Status
       </div>
       <div class="nav-item" onclick="adminNav(this,'categories')">
-        <span class="nav-icon">◈</span> حسب الفئة
+        <span class="nav-icon">◈</span> By Category
       </div>
       <div class="nav-item" onclick="adminNav(this,'users')">
-        <span class="nav-icon">◎</span> حسب العامل
+        <span class="nav-icon">◎</span> حسب Worker
       </div>
       <div class="nav-item" onclick="adminNav(this,'log')">
-        <span class="nav-icon">≡</span> سجل الجلسات
+        <span class="nav-icon">≡</span> Session Log
       </div>
     </div>
 
@@ -436,34 +436,34 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       <!-- Overview -->
       <div class="admin-tab-content active" id="tab-overview">
         <div class="admin-header">
-          <div class="admin-title" style="color:#484888;">نظرة عامة</div>
-          <div class="live-badge"><div class="live-dot"></div> مباشر</div>
+          <div class="admin-title" style="color:#484888;">Overview</div>
+          <div class="live-badge"><div class="live-dot"></div> Live</div>
         </div>
         <div class="metrics-row">
           <div class="metric-card metric-utr">
-            <div class="metric-label">UTR الإجمالي</div>
+            <div class="metric-label">Overall UTR</div>
             <div class="metric-val" id="adminUtrVal">78%</div>
-            <div class="metric-sub">الهدف: 75%+ ✓</div>
+            <div class="metric-sub">Target: 75%+ ✓</div>
           </div>
           <div class="metric-card">
-            <div class="metric-label">عمال نشطون</div>
+            <div class="metric-label">Active Workers</div>
             <div class="metric-val" id="adminActiveVal">4</div>
-            <div class="metric-sub">من أصل 2</div>
+            <div class="metric-sub">out of 2</div>
           </div>
           <div class="metric-card">
-            <div class="metric-label">طلبات اليوم</div>
+            <div class="metric-label">Today's Orders</div>
             <div class="metric-val">14</div>
-            <div class="metric-sub">3 قيد التنفيذ</div>
+            <div class="metric-sub">3 in progress</div>
           </div>
           <div class="metric-card">
-            <div class="metric-label">Idle الآن</div>
-            <div class="metric-val" style="color:var(--amber);" id="adminIdleVal">1</div>
-            <div class="metric-sub">يحتاج تعيين مهمة</div>
+            <div class="metric-label">Idle Now</div>
+            <div class="metric-val" style="color:#EA435D;" id="adminIdleVal">1</div>
+            <div class="metric-sub">needs task assignment</div>
           </div>
         </div>
         <div class="cards-row">
           <div class="dash-card">
-            <div class="card-title">UTR — توزيع الوقت</div>
+            <div class="card-title">UTR — Time Distribution</div>
             <div class="utr-display">
               <div class="donut-wrap">
                 <svg width="90" height="90" viewBox="0 0 90 90">
@@ -485,9 +485,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             </div>
           </div>
           <div class="dash-card">
-            <div class="card-title">الحالة المباشرة</div>
+            <div class="card-title">Live Status</div>
             <table class="worker-table">
-              <tr><th>العامل</th><th>الحالة</th><th>الوقت</th></tr>
+              <tr><th>Worker</th><th>Status</th><th>Time</th></tr>
               <tbody id="liveTableBody">
                 <tr><td>John Joel</td><td><span class="status-pill pill-order">Order ORD-1042</span></td><td class="timer-cell">00:24:10</td></tr>
                 <tr><td>Mozammel</td><td><span class="status-pill pill-house">Housekeeping</span></td><td class="timer-cell">00:08:33</td></tr>
@@ -499,10 +499,10 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       <!-- Live -->
       <div class="admin-tab-content" id="tab-live">
-        <div class="admin-header"><div class="admin-title">الحالة المباشرة</div><div class="live-badge"><div class="live-dot"></div> مباشر</div></div>
+        <div class="admin-header"><div class="admin-title">Live Status</div><div class="live-badge"><div class="live-dot"></div> Live</div></div>
         <div class="dash-card">
           <table class="worker-table" style="width:100%;">
-            <tr><th>العامل</th><th>الفئة</th><th>الطلب</th><th>مدة العمل</th><th>الحالة</th></tr>
+            <tr><th>Worker</th><th>Category</th><th>Order</th><th>مدة العمل</th><th>Status</th></tr>
             <tbody>
               <tr><td>John Joel</td><td>Order</td><td style="font-family:var(--mono);font-size:12px;">ORD-1042</td><td class="timer-cell">00:24:10</td><td><span class="status-pill pill-order">Active</span></td></tr>
               <tr><td>Mozammel</td><td>Housekeeping</td><td>—</td><td class="timer-cell">00:08:33</td><td><span class="status-pill pill-house">Active</span></td></tr>
@@ -513,9 +513,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       <!-- Categories -->
       <div class="admin-tab-content" id="tab-categories">
-        <div class="admin-header"><div class="admin-title">توزيع الوقت حسب الفئة</div></div>
+        <div class="admin-header"><div class="admin-title">توزيع Time By Category</div></div>
         <div class="dash-card" style="max-width:500px;">
-          <div class="card-title">نسبة كل فئة من إجمالي الوقت</div>
+          <div class="card-title">نسبة كل فئة من إجمالي Time</div>
           <div class="bar-item">
             <div class="bar-info"><span class="name">📦 Orders</span><span class="pct" style="color:#484888;">78%</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:78%;background:#484888;"></div></div>
@@ -529,16 +529,16 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             <div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--surface3);border:1px solid var(--border2);"></div></div>
           </div>
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);">
-            الهدف: Orders يجب أن يكون <strong style="color:#484888;">75%+</strong> من الوقت الكلي
+            Target: Orders should be <strong style="color:#484888;">75%+</strong> من Time الكلي
           </div>
         </div>
       </div>
 
       <!-- Users -->
       <div class="admin-tab-content" id="tab-users">
-        <div class="admin-header"><div class="admin-title">UTR حسب العامل</div></div>
+        <div class="admin-header"><div class="admin-title">UTR حسب Worker</div></div>
         <div class="dash-card" style="max-width:500px;">
-          <div class="card-title">نسبة الاستخدام الفعلي لكل عامل</div>
+          <div class="card-title">Utilization rate per worker</div>
           <div class="bar-item">
             <div class="bar-info"><span class="name">John Joel</span><span class="pct" style="color:#484888;">92%</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:92%;background:#484888;"></div></div>
@@ -548,17 +548,17 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             <div class="bar-track"><div class="bar-fill" style="width:85%;background:#484888;"></div></div>
           </div>
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
-            الخط الأحمر: أقل من 75% يحتاج متابعة
+            Below 75% needs follow-up
           </div>
         </div>
       </div>
 
       <!-- Log -->
       <div class="admin-tab-content" id="tab-log">
-        <div class="admin-header"><div class="admin-title">سجل الجلسات</div></div>
+        <div class="admin-header"><div class="admin-title">Session Log</div></div>
         <div class="dash-card">
           <table class="log-table" style="width:100%;">
-            <tr><th>العامل</th><th>الفئة</th><th>الطلب</th><th>البداية</th><th>المدة</th></tr>
+            <tr><th>Worker</th><th>Category</th><th>Order</th><th>Start</th><th>Duration</th></tr>
             <tbody id="logBody">
               <tr><td>John Joel</td><td><span class="status-pill pill-order">Order</span></td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">ORD-1040</td><td style="font-size:12px;">09:15</td><td class="timer-cell">00:42:18</td></tr>
               <tr><td>Mozammel</td><td><span class="status-pill pill-house">Housekeeping</span></td><td>—</td><td style="font-size:12px;">09:30</td><td class="timer-cell">00:22:05</td></tr>
@@ -571,7 +571,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     </div>
   </div>
-  <button class="switch-btn" onclick="showWorker()">← واجهة العامل</button>
+  <button class="switch-btn" onclick="showWorker()">← واجهة Worker</button>
 </div>
 
 <!-- Toast -->
@@ -606,7 +606,7 @@ function workerGoTo(n) {
 
 function nameNext() {
   const v = document.getElementById('workerSelect').value;
-  if (!v) { showToast('اختر اسمك أولاً'); return; }
+  if (!v) { showToast('Please select your name first'); return; }
   workerGoTo(3);
 }
 
@@ -619,7 +619,7 @@ function selectCat(el, cat) {
 }
 
 function catNext() {
-  if (!selectedCatVal) { showToast('اختر نوع المهمة'); return; }
+  if (!selectedCatVal) { showToast('Select task type'); return; }
   const name = document.getElementById('workerSelect').value;
   document.getElementById('timerWorker').textContent = name;
   const badge = document.getElementById('timerBadge');
