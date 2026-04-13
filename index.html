@@ -411,7 +411,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     <div class="sidebar">
       <div class="sidebar-logo">
         <div style="display:flex;align-items:center;gap:6px;"><svg width="52" height="26" viewBox="0 0 104 48" xmlns="http://www.w3.org/2000/svg"><text x="0" y="40" font-family="Georgia,serif" font-size="44" font-weight="900" fill="#484888" font-style="italic">Ygii</text></svg></div>
-        <p>لوحة التحكم</p>
+        <p>Dashboard</p>
       </div>
       <div class="nav-item active" onclick="adminNav(this,'overview')">
         <span class="nav-icon">◉</span> Overview
@@ -423,7 +423,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         <span class="nav-icon">◈</span> By Category
       </div>
       <div class="nav-item" onclick="adminNav(this,'users')">
-        <span class="nav-icon">◎</span> حسب Worker
+        <span class="nav-icon">◎</span> By Worker
       </div>
       <div class="nav-item" onclick="adminNav(this,'log')">
         <span class="nav-icon">≡</span> Session Log
@@ -447,7 +447,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           </div>
           <div class="metric-card">
             <div class="metric-label">Active Workers</div>
-            <div class="metric-val" id="adminActiveVal">4</div>
+            <div class="metric-val" id="adminActiveVal">2</div>
             <div class="metric-sub">out of 2</div>
           </div>
           <div class="metric-card">
@@ -536,7 +536,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       <!-- Users -->
       <div class="admin-tab-content" id="tab-users">
-        <div class="admin-header"><div class="admin-title">UTR حسب Worker</div></div>
+        <div class="admin-header"><div class="admin-title">UTR By Worker</div></div>
         <div class="dash-card" style="max-width:500px;">
           <div class="card-title">Utilization rate per worker</div>
           <div class="bar-item">
@@ -571,7 +571,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     </div>
   </div>
-  <button class="switch-btn" onclick="showWorker()">← واجهة Worker</button>
+  <button class="switch-btn" onclick="showWorker()">→ Worker View</button>
 </div>
 
 <!-- Toast -->
