@@ -398,7 +398,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     <button class="btn-next primary-style" onclick="workerGoTo(1)" style="width:260px;">New Task +</button>
   </div>
 
-  <button class="switch-btn" onclick="showAdmin()">Admin Dashboard →</button>
+  
 </div>
 
 <!-- ═══════════════════ ADMIN PAGE ═══════════════════ -->
@@ -593,13 +593,20 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     </div>
   </div>
-  <button class="switch-btn" onclick="showWorker()">← Worker View</button>
+  
 </div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
+// Auto-detect admin mode
+if (window.location.search.includes('admin')) {
+  document.addEventListener('DOMContentLoaded', function() {
+    showAdmin();
+  });
+}
+
 // QR grid
 const qrPattern = [1,0,1,1,0,1,0, 0,1,0,1,1,0,1, 1,1,0,0,1,0,1, 0,0,1,0,1,1,0, 1,0,1,1,0,0,1, 0,1,0,0,1,0,1, 1,0,1,1,0,1,0];
 const grid = document.getElementById('qrGrid');
