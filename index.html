@@ -703,69 +703,26 @@ function catNext() {
   workerGoTo(4);
 }
 
-function startTimer() {
+async function startTimer() {
   document.getElementById('startBtn').style.display = 'none';
   document.getElementById('completeBtn').style.display = 'block';
   document.getElementById('backBtn4').style.display = 'none';
   timerInterval = setInterval(() => {
     seconds++;
     const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), s = seconds%60;
-    document.getElementById('timerDigits').textContent =
-      pad(h)+':'+pad(m)+':'+pad(s);
+    document.getElementById('timerDigits').textContent = pad(h)+':'+pad(m)+':'+pad(s);
   }, 1000);
-  // Add to live table
   const name = document.getElementById('workerSelect').value;
-  const pill = selectedCatVal==='Order' ? `<span class="status-pill pill-order">${document.getElementById('orderInput').value}</span>`
-    : selectedCatVal==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
-    : '<span class="status-pill pill-idle">Idle</span>';
-  const row = document.createElement('tr');
-  row.id = 'liveRow_'+name;
-  row.innerHTML = `<td>${name}</td><td>${pill}</td><td class="timer-cell" id="liveTime_${name}">00:00:00</td>`;
-  document.getElementById('liveTableBody').appendChild(row);
-  setInterval(() => {
-    const el = document.getElementById('liveTime_'+name);
-    if (el) el.textContent = document.getElementById('timerDigits').textContent;
-  }, 1000);
-}
-
-async function completeTask() {
-  clearInterval(timerInterval);
-  const name = document.getElementById('workerSelect').value;
-  const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), s = seconds%60;
-  const dur = pad(h)+':'+pad(m)+':'+pad(s);
-  document.getElementById('doneWorker').textContent = name;
-  document.getElementById('doneSummary').textContent = selectedCatVal + ' — ' + dur;
-  const order = selectedCatVal==='Order' ? document.getElementById('orderInput').value : null;
-  const pill = selectedCatVal==='Order' ? '<span class="status-pill pill-order">Order</span>'
-    : selectedCatVal==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
-    : '<span class="status-pill pill-idle">Idle</span>';
-  const now = new Date(); const timeStr = pad(now.getHours())+':'+pad(now.getMinutes());
-  const logRow = document.createElement('tr');
-  logRow.innerHTML = `<td>${name}</td><td>${pill}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">${order||'—'}</td><td style="font-size:12px;">${timeStr}</td><td class="timer-cell">${dur}</td>`;
-  const logBody = document.getElementById('logBody');
-  if (logBody) logBody.insertBefore(logRow, logBody.firstChild);
-  const liveRow = document.getElementById('liveRow_'+name);
-  if (liveRow) liveRow.remove();
-  // Remove from active sessions
+  const order = selectedCatVal === 'Order' ? document.getElementById('orderInput').value : null;
   try {
     await _supabase.from('active_sessions').delete().eq('worker_name', name);
-  } catch(e) {}
-  // Save to Supabase
-  const categoryToSave = selectedCatVal || 'Unknown';
-  const orderToSave = categoryToSave === 'Order' ? (document.getElementById('orderInput').value || null) : null;
-  try {
-    const { error } = await _supabase.from('sessions').insert({
+    await _supabase.from('active_sessions').insert({
       worker_name: name,
-      category: categoryToSave,
-      order_id: orderToSave,
-      duration_seconds: seconds,
-      started_at: new Date(Date.now() - seconds * 1000).toISOString(),
-      completed_at: new Date().toISOString()
+      category: selectedCatVal,
+      order_id: order
     });
-    if (error) console.error('Insert error:', error);
-    else console.log('Saved! category:', categoryToSave);
-  } catch(e) { console.error('Supabase error:', e); }
-  workerGoTo(5);
+    console.log('Active session saved!', name, selectedCatVal);
+  } catch(e) { console.error('active_sessions error:', e); }
 }
 
 
@@ -896,7 +853,7 @@ async function loadLiveStatus() {
         : s.category === 'Housekeeping'
         ? '<span class="status-pill pill-house">Active</span>'
         : '<span class="status-pill pill-idle">Active</span>';
-      return `<tr><td>${s.worker_name}</td><td>${s.category}</td><td style="font-family:var(--mono);font-size:12px;">${s.order_id||'—'}</td><td class="timer-cell">${dur}</td><td>${activehill}</td></tr>`;
+      return `<tr><td>${s.worker_name}</td><td>${s.category}</td><td style="font-family:var(--mono);font-size:12px;">${s.order_id||'—'}</td><td class="timer-cell">${dur}</td><td>${activepill}</td></tr>`;
     }).join('');
     if (tbody) tbody.innerHTML = fullRows || '<tr><td colspan="5" style="font-size:13px;color:var(--text3);padding:8px 0;">No active workers</td></tr>';
 
