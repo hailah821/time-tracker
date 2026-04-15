@@ -595,6 +595,92 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 <div class="toast" id="toast"></div>
 
 <script>
+
+function saveTimerState() {
+  sessionStorage.setItem('timerActive', 'true');
+  sessionStorage.setItem('timerSeconds', seconds);
+  sessionStorage.setItem('timerCategory', selectedCatVal);
+  sessionStorage.setItem('timerWorker', document.getElementById('workerSelect').value);
+  sessionStorage.setItem('timerOrder', document.getElementById('orderInput').value || '');
+  sessionStorage.setItem('timerStarted', Date.now() - (seconds * 1000));
+}
+
+function restoreTimerState() {
+  const active = sessionStorage.getItem('timerActive');
+  if (!active) return;
+  
+  const workerName = sessionStorage.getItem('timerWorker');
+  const category = sessionStorage.getItem('timerCategory');
+  const order = sessionStorage.getItem('timerOrder');
+  const startedAt = parseInt(sessionStorage.getItem('timerStarted'));
+  
+  if (!workerName || !category) return;
+  
+  // Restore state
+  selectedCatVal = category;
+  seconds = Math.floor((Date.now() - startedAt) / 1000);
+  
+  // Set worker name
+  const workerSelect = document.getElementById('workerSelect');
+  if (workerSelect) workerSelect.value = workerName;
+  
+  // Set order
+  const orderInput = document.getElementById('orderInput');
+  if (orderInput) orderInput.value = order;
+  
+  // Go to timer screen
+  workerGoTo(4);
+  
+  // Update badge
+  const badge = document.getElementById('timerBadge');
+  if (badge) {
+    if (category === 'Order') {
+      badge.textContent = '📦 ' + (order || 'Order');
+      badge.style.cssText = 'background:rgba(72,72,136,0.10);color:#484888;border:1px solid rgba(72,72,136,0.3);display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:20px;';
+    } else if (category === 'Housekeeping') {
+      badge.textContent = '🧹 Housekeeping';
+      badge.style.cssText = 'background:rgba(138,75,94,0.10);color:#8A4B5E;border:1px solid rgba(138,75,94,0.3);display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:20px;';
+    } else {
+      badge.textContent = '⏸ Idle';
+      badge.style.cssText = 'background:var(--surface3);color:var(--text2);border:1px solid var(--border2);display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:20px;';
+    }
+  }
+  
+  document.getElementById('timerWorker').textContent = workerName;
+  if (category === 'Order') {
+    document.getElementById('timerOrderWrap').style.display = 'flex';
+    document.getElementById('timerOrder').textContent = order;
+  }
+  
+  // Resume timer
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('completeBtn').style.display = 'block';
+  document.getElementById('backBtn4').style.display = 'none';
+  
+  const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), s = seconds%60;
+  document.getElementById('timerDigits').textContent = pad(h)+':'+pad(m)+':'+pad(s);
+  
+  timerInterval = setInterval(() => {
+    seconds++;
+    const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), s = seconds%60;
+    document.getElementById('timerDigits').textContent = pad(h)+':'+pad(m)+':'+pad(s);
+  }, 1000);
+}
+
+function clearTimerState() {
+  sessionStorage.removeItem('timerActive');
+  sessionStorage.removeItem('timerSeconds');
+  sessionStorage.removeItem('timerCategory');
+  sessionStorage.removeItem('timerWorker');
+  sessionStorage.removeItem('timerOrder');
+  sessionStorage.removeItem('timerStarted');
+}
+
+// Restore timer if active
+document.addEventListener('DOMContentLoaded', function() {
+  if (!window.location.search.includes('admin')) restoreTimerState();
+});
+
 // Auto-detect admin mode
 if (window.location.search.includes('admin')) {
   document.addEventListener('DOMContentLoaded', function() {
@@ -722,6 +808,7 @@ async function startTimer() {
       order_id: order
     });
     console.log('Active session saved!', name, selectedCatVal);
+    saveTimerState();
   } catch(e) { console.error('active_sessions error:', e); }
 }
 
