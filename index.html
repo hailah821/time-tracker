@@ -385,7 +385,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       </div>
     </div>
     <button class="btn-primary btn-start" id="startBtn" onclick="startTimer()">▶ Start Task</button>
-    <button class="btn-primary btn-complete" id="completeBtn" onclick="completeTask()" style="display:none;">■ Complete Task</button>
+    <button class="btn-primary btn-complete" id="completeBtn" onclick="handleComplete(this)" style="display:none;">■ Complete Task</button>
     <button class="btn-back" id="backBtn4" onclick="workerGoTo(3)">Back</button>
   </div>
 
@@ -526,16 +526,16 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         <div class="dash-card" style="max-width:500px;">
           <div class="card-title">Percentage of total time per category</div>
           <div class="bar-item">
-            <div class="bar-info"><span class="name">📦 Orders</span><span class="pct" style="color:#484888;">0%</span></div>
-            <div class="bar-track"><div class="bar-fill" style="width:0%;background:#484888;"></div></div>
+            <div class="bar-info"><span class="name">📦 Orders</span><span class="pct" style="color:#484888;" id="catOrderPct">0%</span></div>
+            <div class="bar-track"><div class="bar-fill" id="catOrderBar" style="width:0%;background:#484888;"></div></div>
           </div>
           <div class="bar-item">
-            <div class="bar-info"><span class="name">🧹 Housekeeping</span><span class="pct" style="color:var(--blue);">13%</span></div>
-            <div class="bar-track"><div class="bar-fill" style="width:13%;background:var(--blue);"></div></div>
+            <div class="bar-info"><span class="name">🧹 Housekeeping</span><span class="pct" style="color:#8A4B5E;" id="catHousePct">0%</span></div>
+            <div class="bar-track"><div class="bar-fill" id="catHouseBar" style="width:0%;background:#8A4B5E;"></div></div>
           </div>
           <div class="bar-item">
-            <div class="bar-info"><span class="name">⏸ Idle</span><span class="pct" style="color:var(--text2);">0%</span></div>
-            <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--surface3);border:1px solid var(--border2);"></div></div>
+            <div class="bar-info"><span class="name">⏸ Idle</span><span class="pct" style="color:var(--text2);" id="catIdlePct">0%</span></div>
+            <div class="bar-track"><div class="bar-fill" id="catIdleBar" style="width:0%;background:var(--surface3);border:1px solid var(--border2);"></div></div>
           </div>
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);">
             Target: Orders should be <strong style="color:#484888;">75%+</strong> of total time
@@ -827,6 +827,18 @@ async function startTimer() {
 }
 
 
+
+
+function handleComplete(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  btn.style.opacity = '0.7';
+  completeTask().finally(() => {
+    btn.disabled = false;
+    btn.textContent = '■ Complete Task';
+    btn.style.opacity = '1';
+  });
+}
 
 async function completeTask() {
   clearInterval(timerInterval);
