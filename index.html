@@ -611,18 +611,30 @@ function restoreTimerState() {
   
   const workerName = localStorage.getItem('timerWorker');
   const category = localStorage.getItem('timerCategory');
-  const order = localStorage.getItem('timerOrder');
+  const order = localStorage.getItem('timerOrder') || '';
   const startedAt = parseInt(localStorage.getItem('timerStarted'));
   
-  if (!workerName || !category) return;
+  if (!workerName || !category || !startedAt) return;
   
   // Restore state
   selectedCatVal = category;
   seconds = Math.floor((Date.now() - startedAt) / 1000);
   
-  // Set worker name
+  // Add worker to select if not exists
   const workerSelect = document.getElementById('workerSelect');
-  if (workerSelect) workerSelect.value = workerName;
+  if (workerSelect) {
+    let found = false;
+    for (let opt of workerSelect.options) {
+      if (opt.value === workerName) { found = true; break; }
+    }
+    if (!found) {
+      const opt = document.createElement('option');
+      opt.value = workerName;
+      opt.textContent = workerName;
+      workerSelect.appendChild(opt);
+    }
+    workerSelect.value = workerName;
+  }
   
   // Set order
   const orderInput = document.getElementById('orderInput');
