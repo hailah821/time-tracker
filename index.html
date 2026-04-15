@@ -513,7 +513,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         <div class="dash-card">
           <table class="worker-table" style="width:100%;">
             <tr><th>Worker</th><th>Category</th><th>Order</th><th>Duration</th><th>Status</th></tr>
-            <tbody id="liveStatusBody"></tbody>
+            <tbody id="liveStatusBody">
+              <tr><td colspan="5" style="font-size:13px;color:var(--text3);padding:8px 0;">No active workers</td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -546,14 +548,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         <div class="admin-header"><div class="admin-title">UTR By Worker</div></div>
         <div class="dash-card" style="max-width:500px;">
           <div class="card-title">Utilization rate per worker</div>
-          <div class="bar-item">
-            <div class="bar-info"><span class="name">John Joel</span><span class="pct" style="color:#484888;">0%</span></div>
-            <div class="bar-track"><div class="bar-fill" style="width:0%;background:#484888;"></div></div>
-          </div>
-          <div class="bar-item">
-            <div class="bar-info"><span class="name">Mozammel</span><span class="pct" style="color:#484888;">0%</span></div>
-            <div class="bar-track"><div class="bar-fill" style="width:0%;background:#484888;"></div></div>
-          </div>
+          <div id="utrWorkerBars"></div>
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
             Below 75% needs follow-up
           </div>
@@ -751,6 +746,10 @@ async function completeTask() {
   if (logBody) logBody.insertBefore(logRow, logBody.firstChild);
   const liveRow = document.getElementById('liveRow_'+name);
   if (liveRow) liveRow.remove();
+  // Remove from active sessions
+  try {
+    await _supabase.from('active_sessions').delete().eq('worker_name', name);
+  } catch(e) {}
   // Save to Supabase
   const categoryToSave = selectedCatVal || 'Unknown';
   const orderToSave = categoryToSave === 'Order' ? (document.getElementById('orderInput').value || null) : null;
@@ -778,7 +777,9 @@ function showAdmin() {
   updateUTR();
   loadLog();
   loadActiveOrders();
+  loadLiveStatus();
   setInterval(updateUTR, 30000);
+  setInterval(loadLiveStatus, 10000);
 }
 function showWorker() {
   document.getElementById('adminPage').classList.remove('active');
@@ -846,19 +847,79 @@ async function deleteOrder(id) {
 }
 
 
+
+async function loadLiveStatus() {
+  try {
+    const { data } = await _supabase.from('active_sessions')
+      .select('*')
+      .order('started_at', { ascending: true });
+    
+    const tbody = document.getElementById('liveStatusBody');
+    const liveTable = document.getElementById('liveTableBody');
+    
+    if (!data || data.length === 0) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="font-size:13px;color:var(--text3);padding:8px 0;">No active workers</td></tr>';
+      if (liveTable) liveTable.innerHTML = '<tr><td colspan="3" style="font-size:13px;color:var(--text3);padding:8px 0;">No active workers</td></tr>';
+      document.getElementById('adminActiveVal').textContent = '0';
+      return;
+    }
+
+    document.getElementById('adminActiveVal').textContent = data.length;
+
+    const rows = data.map(s => {
+      const pill = s.category === 'Order' 
+        ? `<span class="status-pill pill-order">${s.order_id || 'Order'}</span>`
+        : s.category === 'Housekeeping' 
+        ? '<span class="status-pill pill-house">Housekeeping</span>'
+        : '<span class="status-pill pill-idle">Idle</span>';
+      const started = new Date(s.started_at);
+      const elapsed = Math.floor((Date.now() - started.getTime()) / 1000);
+      const h = Math.floor(elapsed/3600), m = Math.floor((elapsed%3600)/60), sec = elapsed%60;
+      const dur = pad(h)+':'+pad(m)+':'+pad(sec);
+      return `<tr><td>${s.worker_name}</td><td>${pill}</td><td class="timer-cell">${dur}</td></tr>`;
+    }).join('');
+
+    if (liveTable) liveTable.innerHTML = rows;
+
+    const fullRows = data.map(s => {
+      const pill = s.category === 'Order'
+        ? `<span class="status-pill pill-order">Order</span>`
+        : s.category === 'Housekeeping'
+        ? '<span class="status-pill pill-house">Housekeeping</span>'
+        : '<span class="status-pill pill-idle">Idle</span>';
+      const started = new Date(s.started_at);
+      const elapsed = Math.floor((Date.now() - started.getTime()) / 1000);
+      const h = Math.floor(elapsed/3600), m = Math.floor((elapsed%3600)/60), sec = elapsed%60;
+      const dur = pad(h)+':'+pad(m)+':'+pad(sec);
+      const activepill = s.category === 'Order'
+        ? '<span class="status-pill pill-order">Active</span>'
+        : s.category === 'Housekeeping'
+        ? '<span class="status-pill pill-house">Active</span>'
+        : '<span class="status-pill pill-idle">Active</span>';
+      return `<tr><td>${s.worker_name}</td><td>${s.category}</td><td style="font-family:var(--mono);font-size:12px;">${s.order_id||'—'}</td><td class="timer-cell">${dur}</td><td>${activehill}</td></tr>`;
+    }).join('');
+    if (tbody) tbody.innerHTML = fullRows || '<tr><td colspan="5" style="font-size:13px;color:var(--text3);padding:8px 0;">No active workers</td></tr>';
+
+  } catch(e) { console.error('live status error:', e); }
+}
+
 async function updateUTR() {
   try {
+    const today = new Date(); today.setHours(0,0,0,0);
     const { data, error } = await _supabase.from('sessions')
-      .select('worker_name, category, duration_seconds, started_at');
+      .select('worker_name, category, duration_seconds, started_at')
+      .gte('started_at', today.toISOString());
     
     if (error) { console.error('Supabase error:', error); return; }
-    if (!data || data.length === 0) { console.log('No data in sessions'); return; }
+    if (!data || data.length === 0) {
+      document.getElementById('adminUtrVal').textContent = '0%';
+      document.getElementById('adminActiveVal').textContent = '0';
+      document.getElementById('clientOrdersVal').textContent = '0';
+      document.getElementById('adminIdleVal').textContent = '0';
+      return;
+    }
     
-    console.log('Sessions data:', data);
-
-    const today = new Date(); today.setHours(0,0,0,0);
-    const todayData = data.filter(s => new Date(s.started_at) >= today);
-    console.log('Today data:', todayData);
+    const todayData = data;
     
     const workdaySeconds = 8 * 3600;
 
@@ -888,6 +949,41 @@ async function updateUTR() {
     const idleOnly = [...new Set(idleWorkers.filter(w => !orderWorkers.includes(w)))].length;
     const idleEl = document.getElementById('adminIdleVal');
     if (idleEl) idleEl.textContent = idleOnly;
+
+    // Update By Category bars
+    const totalSeconds = todayData.reduce((a,b) => a + (b.duration_seconds||0), 0);
+    if (totalSeconds > 0) {
+      const ordPct = Math.round((todayData.filter(s=>s.category==='Order').reduce((a,b)=>a+(b.duration_seconds||0),0) / totalSeconds) * 100);
+      const houPct = Math.round((todayData.filter(s=>s.category==='Housekeeping').reduce((a,b)=>a+(b.duration_seconds||0),0) / totalSeconds) * 100);
+      const idlPct = Math.round((todayData.filter(s=>s.category==='Idle').reduce((a,b)=>a+(b.duration_seconds||0),0) / totalSeconds) * 100);
+      if (document.getElementById('catOrderPct')) document.getElementById('catOrderPct').textContent = ordPct + '%';
+      if (document.getElementById('catOrderBar')) document.getElementById('catOrderBar').style.width = ordPct + '%';
+      if (document.getElementById('catHousePct')) document.getElementById('catHousePct').textContent = houPct + '%';
+      if (document.getElementById('catHouseBar')) document.getElementById('catHouseBar').style.width = houPct + '%';
+      if (document.getElementById('catIdlePct')) document.getElementById('catIdlePct').textContent = idlPct + '%';
+      if (document.getElementById('catIdleBar')) document.getElementById('catIdleBar').style.width = idlPct + '%';
+    }
+
+    // Update UTR by Worker bars
+    const workerNames = [...new Set(todayData.map(s => s.worker_name))];
+    const utrBars = document.getElementById('utrWorkerBars');
+    if (utrBars) {
+      utrBars.innerHTML = '';
+      const workdaySeconds = 8 * 3600;
+      workerNames.forEach(name => {
+        const workerSessions = todayData.filter(s => s.worker_name === name);
+        const workerOrderSec = workerSessions.filter(s=>s.category==='Order').reduce((a,b)=>a+(b.duration_seconds||0),0);
+        const workerUtr = Math.min(100, Math.round((workerOrderSec / workdaySeconds) * 100));
+        const color = workerUtr >= 75 ? '#484888' : workerUtr >= 50 ? '#ECC371' : '#EA435D';
+        utrBars.innerHTML += `<div class="bar-item">
+          <div class="bar-info"><span class="name">${name}</span><span class="pct" style="color:${color};">${workerUtr}%</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${workerUtr}%;background:${color};"></div></div>
+        </div>`;
+      });
+      if (workerNames.length === 0) {
+        utrBars.innerHTML = '<p style="font-size:13px;color:var(--text3);">No data yet</p>';
+      }
+    }
 
     const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0,0,0,0);
     const weekData = data.filter(s => new Date(s.started_at) >= weekStart && s.category === 'Order');
