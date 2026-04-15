@@ -491,9 +491,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 <div class="donut-center"><div class="donut-pct" id="donutPct">0%</div><div class="donut-lbl">UTR</div></div>
               </div>
               <div class="utr-legend">
-                <div class="utr-leg-item"><div class="utr-leg-dot" style="background:var(--green);"></div><span style="color:var(--text2);">Orders</span><span style="margin-right:auto;font-family:var(--mono);font-size:12px;color:var(--green);">78%</span></div>
-                <div class="utr-leg-item"><div class="utr-leg-dot" style="background:var(--blue);"></div><span style="color:var(--text2);">Housekeeping</span><span style="margin-right:auto;font-family:var(--mono);font-size:12px;color:var(--blue);">13%</span></div>
-                <div class="utr-leg-item"><div class="utr-leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="color:var(--text2);">Idle</span><span style="margin-right:auto;font-family:var(--mono);font-size:12px;color:var(--text2);">0%</span></div>
+                <div class="utr-leg-item"><div class="utr-leg-dot" style="background:var(--green);"></div><span style="color:var(--text2);">Orders</span><span style="margin-right:auto;font-family:var(--mono);font-size:12px;color:#484888;" id="legendOrderPct">0%</span></div>
+                <div class="utr-leg-item"><div class="utr-leg-dot" style="background:var(--blue);"></div><span style="color:var(--text2);">Housekeeping</span><span style="margin-right:auto;font-family:var(--mono);font-size:12px;color:#8A4B5E;" id="legendHousePct">0%</span></div>
+                <div class="utr-leg-item"><div class="utr-leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="color:var(--text2);">Idle</span><span style="margin-right:auto;font-family:var(--mono);font-size:12px;color:var(--text2);" id="legendIdlePct">0%</span></div>
               </div>
             </div>
           </div>
@@ -1052,19 +1052,24 @@ async function updateUTR() {
     const idleEl = document.getElementById('adminIdleVal');
     if (idleEl) idleEl.textContent = idleNow;
 
-    // Update By Category bars
+    // Update By Category bars and donut
     const totalSeconds = todayData.reduce((a,b) => a + (b.duration_seconds||0), 0);
-    if (totalSeconds > 0) {
-      const ordPct = Math.round((todayData.filter(s=>s.category==='Order').reduce((a,b)=>a+(b.duration_seconds||0),0) / totalSeconds) * 100);
-      const houPct = Math.round((todayData.filter(s=>s.category==='Housekeeping').reduce((a,b)=>a+(b.duration_seconds||0),0) / totalSeconds) * 100);
-      const idlPct = Math.round((todayData.filter(s=>s.category==='Idle').reduce((a,b)=>a+(b.duration_seconds||0),0) / totalSeconds) * 100);
-      if (document.getElementById('catOrderPct')) document.getElementById('catOrderPct').textContent = ordPct + '%';
-      if (document.getElementById('catOrderBar')) document.getElementById('catOrderBar').style.width = ordPct + '%';
-      if (document.getElementById('catHousePct')) document.getElementById('catHousePct').textContent = houPct + '%';
-      if (document.getElementById('catHouseBar')) document.getElementById('catHouseBar').style.width = houPct + '%';
-      if (document.getElementById('catIdlePct')) document.getElementById('catIdlePct').textContent = idlPct + '%';
-      if (document.getElementById('catIdleBar')) document.getElementById('catIdleBar').style.width = idlPct + '%';
-    }
+    const ordPct = totalSeconds > 0 ? Math.round((todayData.filter(s=>s.category==='Order').reduce((a,b)=>a+(b.duration_seconds||0),0) / totalSeconds) * 100) : 0;
+    const houPct = totalSeconds > 0 ? Math.round((todayData.filter(s=>s.category==='Housekeeping').reduce((a,b)=>a+(b.duration_seconds||0),0) / totalSeconds) * 100) : 0;
+    const idlPct = totalSeconds > 0 ? Math.round((todayData.filter(s=>s.category==='Idle').reduce((a,b)=>a+(b.duration_seconds||0),0) / totalSeconds) * 100) : 0;
+    
+    if (document.getElementById('catOrderPct')) document.getElementById('catOrderPct').textContent = ordPct + '%';
+    if (document.getElementById('catOrderBar')) document.getElementById('catOrderBar').style.width = ordPct + '%';
+    if (document.getElementById('catHousePct')) document.getElementById('catHousePct').textContent = houPct + '%';
+    if (document.getElementById('catHouseBar')) document.getElementById('catHouseBar').style.width = houPct + '%';
+    if (document.getElementById('catIdlePct')) document.getElementById('catIdlePct').textContent = idlPct + '%';
+    if (document.getElementById('catIdleBar')) document.getElementById('catIdleBar').style.width = idlPct + '%';
+    
+    // Update donut and legend
+    if (document.getElementById('donutPct')) document.getElementById('donutPct').textContent = utr + '%';
+    if (document.getElementById('legendOrderPct')) document.getElementById('legendOrderPct').textContent = ordPct + '%';
+    if (document.getElementById('legendHousePct')) document.getElementById('legendHousePct').textContent = houPct + '%';
+    if (document.getElementById('legendIdlePct')) document.getElementById('legendIdlePct').textContent = idlPct + '%';
 
     // Update UTR by Worker bars
     const workerNames = [...new Set(todayData.map(s => s.worker_name))];
