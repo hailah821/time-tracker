@@ -597,22 +597,22 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 <script>
 
 function saveTimerState() {
-  sessionStorage.setItem('timerActive', 'true');
-  sessionStorage.setItem('timerSeconds', seconds);
-  sessionStorage.setItem('timerCategory', selectedCatVal);
-  sessionStorage.setItem('timerWorker', document.getElementById('workerSelect').value);
-  sessionStorage.setItem('timerOrder', document.getElementById('orderInput').value || '');
-  sessionStorage.setItem('timerStarted', Date.now() - (seconds * 1000));
+  localStorage.setItem('timerActive', 'true');
+  localStorage.setItem('timerSeconds', seconds);
+  localStorage.setItem('timerCategory', selectedCatVal);
+  localStorage.setItem('timerWorker', document.getElementById('workerSelect').value);
+  localStorage.setItem('timerOrder', document.getElementById('orderInput').value || '');
+  localStorage.setItem('timerStarted', Date.now() - (seconds * 1000));
 }
 
 function restoreTimerState() {
-  const active = sessionStorage.getItem('timerActive');
+  const active = localStorage.getItem('timerActive');
   if (!active) return;
   
-  const workerName = sessionStorage.getItem('timerWorker');
-  const category = sessionStorage.getItem('timerCategory');
-  const order = sessionStorage.getItem('timerOrder');
-  const startedAt = parseInt(sessionStorage.getItem('timerStarted'));
+  const workerName = localStorage.getItem('timerWorker');
+  const category = localStorage.getItem('timerCategory');
+  const order = localStorage.getItem('timerOrder');
+  const startedAt = parseInt(localStorage.getItem('timerStarted'));
   
   if (!workerName || !category) return;
   
@@ -669,12 +669,12 @@ function restoreTimerState() {
 }
 
 function clearTimerState() {
-  sessionStorage.removeItem('timerActive');
-  sessionStorage.removeItem('timerSeconds');
-  sessionStorage.removeItem('timerCategory');
-  sessionStorage.removeItem('timerWorker');
-  sessionStorage.removeItem('timerOrder');
-  sessionStorage.removeItem('timerStarted');
+  localStorage.removeItem('timerActive');
+  localStorage.removeItem('timerSeconds');
+  localStorage.removeItem('timerCategory');
+  localStorage.removeItem('timerWorker');
+  localStorage.removeItem('timerOrder');
+  localStorage.removeItem('timerStarted');
 }
 
 // Restore timer if active
@@ -814,6 +814,37 @@ async function startTimer() {
   } catch(e) { console.error('active_sessions error:', e); }
 }
 
+
+
+async function completeTask() {
+  clearInterval(timerInterval);
+  const name = document.getElementById('workerSelect').value;
+  const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), s = seconds%60;
+  const dur = pad(h)+':'+pad(m)+':'+pad(s);
+  document.getElementById('doneWorker').textContent = name;
+  document.getElementById('doneSummary').textContent = selectedCatVal + ' — ' + dur;
+  const categoryToSave = selectedCatVal || 'Unknown';
+  const orderToSave = categoryToSave === 'Order' ? (document.getElementById('orderInput').value || null) : null;
+  clearTimerState();
+  // Remove from active sessions
+  try {
+    await _supabase.from('active_sessions').delete().eq('worker_name', name);
+  } catch(e) {}
+  // Save to Supabase
+  try {
+    const { error } = await _supabase.from('sessions').insert({
+      worker_name: name,
+      category: categoryToSave,
+      order_id: orderToSave,
+      duration_seconds: seconds,
+      started_at: new Date(Date.now() - seconds * 1000).toISOString(),
+      completed_at: new Date().toISOString()
+    });
+    if (error) console.error('Insert error:', error);
+    else console.log('Saved! category:', categoryToSave);
+  } catch(e) { console.error('Supabase error:', e); }
+  workerGoTo(5);
+}
 
 function pad(n) { return String(n).padStart(2,'0'); }
 
