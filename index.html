@@ -990,11 +990,11 @@ async function updateUTR() {
     const orderEl = document.getElementById('clientOrdersVal');
     if (orderEl) orderEl.textContent = orderCount;
 
-    const idleWorkers = todayData.filter(s => s.category === 'Idle').map(s => s.worker_name);
-    const orderWorkers = todayData.filter(s => s.category === 'Order').map(s => s.worker_name);
-    const idleOnly = [...new Set(idleWorkers.filter(w => !orderWorkers.includes(w)))].length;
+    // IDLE NOW - count from active_sessions
+    const { data: activeData } = await _supabase.from('active_sessions').select('category');
+    const idleNow = activeData ? activeData.filter(s => s.category === 'Idle').length : 0;
     const idleEl = document.getElementById('adminIdleVal');
-    if (idleEl) idleEl.textContent = idleOnly;
+    if (idleEl) idleEl.textContent = idleNow;
 
     // Update By Category bars
     const totalSeconds = todayData.reduce((a,b) => a + (b.duration_seconds||0), 0);
