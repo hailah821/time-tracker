@@ -584,18 +584,6 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       <div class="admin-tab-content" id="tab-settings">
         <div class="admin-header"><div class="admin-title" style="color:#484888;">Settings</div></div>
         
-        <!-- UTR Target -->
-        <div class="dash-card" style="max-width:500px;margin-bottom:20px;">
-          <div class="card-title">UTR Target</div>
-          <div style="display:flex;align-items:center;gap:12px;">
-            <input type="number" id="utrTargetInput" min="1" max="100" value="75"
-              style="width:100px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--font);font-size:16px;font-weight:600;outline:none;">
-            <span style="font-size:16px;color:var(--text2);">%</span>
-            <button onclick="saveTarget()" style="padding:10px 20px;border-radius:10px;border:none;background:#484888;color:white;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;">Save</button>
-          </div>
-          <p style="font-size:12px;color:var(--text3);margin-top:8px;">Current target shown in dashboard</p>
-        </div>
-
         <!-- Workers -->
         <div class="dash-card" style="max-width:500px;">
           <div class="card-title">Workers</div>
