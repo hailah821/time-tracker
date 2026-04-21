@@ -432,6 +432,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       <div class="nav-item" onclick="adminNav(this,'settings')">
         <span class="nav-icon">⚙</span> Settings
       </div>
+      <div class="nav-item" onclick="adminNav(this,'dailyutr')">
+        <span class="nav-icon">📅</span> Daily UTR
+      </div>
     </div>
 
     <!-- Main -->
@@ -555,6 +558,25 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
             Below 75% needs follow-up
           </div>
+        </div>
+      </div>
+
+      <!-- Daily UTR -->
+      <div class="admin-tab-content" id="tab-dailyutr">
+        <div class="admin-header"><div class="admin-title" style="color:#484888;">Daily UTR History</div></div>
+        <div class="dash-card">
+          <div class="card-title">UTR Achievement by Day</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <th style="font-size:11px;color:var(--text3);text-align:left;padding:0 0 10px;font-weight:500;letter-spacing:0.5px;">DATE</th>
+              <th style="font-size:11px;color:var(--text3);text-align:left;padding:0 0 10px;font-weight:500;letter-spacing:0.5px;">UTR %</th>
+              <th style="font-size:11px;color:var(--text3);text-align:left;padding:0 0 10px;font-weight:500;letter-spacing:0.5px;">TARGET</th>
+              <th style="font-size:11px;color:var(--text3);text-align:left;padding:0 0 10px;font-weight:500;letter-spacing:0.5px;">RESULT</th>
+            </tr>
+            <tbody id="dailyUtrBody">
+              <tr><td colspan="4" style="font-size:13px;color:var(--text3);padding:8px 0;">No data yet</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -914,6 +936,7 @@ function showAdmin() {
   loadLiveStatus();
   loadTarget();
   loadWorkersList();
+  loadDailyUTR();
   setInterval(updateUTR, 30000);
   setInterval(loadLiveStatus, 10000);
 }
@@ -941,6 +964,48 @@ setInterval(() => {
   ['00:24:10','00:08:33','00:15:00','00:31:07'].forEach((t,i) => {});
 }, 1000);
 
+
+
+async function saveDailyUTR(utr, target) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    await _supabase.from('daily_utr').upsert({
+      date: today,
+      utr_percentage: utr,
+      target_percentage: target,
+      achieved: utr >= target
+    });
+  } catch(e) { console.error('saveDailyUTR error:', e); }
+}
+
+async function loadDailyUTR() {
+  try {
+    const { data } = await _supabase.from('daily_utr')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(30);
+    const tbody = document.getElementById('dailyUtrBody');
+    if (!tbody) return;
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="font-size:13px;color:var(--text3);padding:8px 0;">No data yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    data.forEach(d => {
+      const date = new Date(d.date).toLocaleDateString('en', {day:'2-digit', month:'short', year:'numeric'});
+      const resultColor = d.achieved ? '#484888' : '#EA435D';
+      const resultText = d.achieved ? '✓ Achieved' : '✗ Missed';
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td style="padding:10px 0;border-top:1px solid var(--border);font-size:13px;">${date}</td>
+        <td style="padding:10px 0;border-top:1px solid var(--border);font-size:13px;font-family:var(--mono);font-weight:600;color:${resultColor};">${d.utr_percentage}%</td>
+        <td style="padding:10px 0;border-top:1px solid var(--border);font-size:13px;color:var(--text2);">${d.target_percentage}%</td>
+        <td style="padding:10px 0;border-top:1px solid var(--border);font-size:13px;color:${resultColor};font-weight:500;">${resultText}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  } catch(e) { console.error('loadDailyUTR error:', e); }
+}
 
 async function saveTarget() {
   const val = document.getElementById('utrTargetInput').value;
@@ -1141,6 +1206,7 @@ async function updateUTR() {
     const orderSeconds = todayData.filter(s => s.category === 'Order').reduce((a,b) => a + (b.duration_seconds||0), 0);
     const utr = Math.min(100, Math.round((orderSeconds / workdaySeconds) * 100));
     const target = window._utrTarget || 75;
+    saveDailyUTR(utr, target);
     console.log('UTR:', utr, 'orderSeconds:', orderSeconds);
     
     const utrEl = document.getElementById('adminUtrVal');
