@@ -1128,8 +1128,9 @@ async function loadLog() {
         : s.category==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
         : '<span class="status-pill pill-idle">Idle</span>';
       const time = s.completed_at ? new Date(s.completed_at).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const date = s.completed_at ? new Date(s.completed_at).toLocaleDateString('en',{day:'2-digit',month:'short',year:'numeric'}) : '—';
       const row = document.createElement('tr');
-      row.innerHTML = `<td>${s.worker_name}</td><td>${pill}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">${s.order_id||'—'}</td><td style="font-size:12px;">${time}</td><td class="timer-cell">${dur}</td>`;
+      row.innerHTML = `<td>${s.worker_name}</td><td>${pill}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">${s.order_id||'—'}</td><td style="font-size:12px;">${date}</td><td style="font-size:12px;">${time}</td><td class="timer-cell">${dur}</td>`;
       logBody.appendChild(row);
     });
   } catch(e) { console.error('Log error:', e); }
