@@ -429,6 +429,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       <div class="nav-item" onclick="adminNav(this,'createorder')">
         <span class="nav-icon">+</span> Create Order
       </div>
+      <div class="nav-item" onclick="adminNav(this,'settings')">
+        <span class="nav-icon">⚙</span> Settings
+      </div>
     </div>
 
     <!-- Main -->
@@ -444,7 +447,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           <div class="metric-card metric-utr">
             <div class="metric-label">Overall UTR</div>
             <div class="metric-val" id="adminUtrVal">0%</div>
-            <div class="metric-sub">Target: 75%+</div>
+            <div class="metric-sub"><span id="targetDisplay">Target: 75%+</span></div>
           </div>
           <div class="metric-card">
             <div class="metric-label">Active Workers</div>
@@ -551,6 +554,36 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           <div id="utrWorkerBars"></div>
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
             Below 75% needs follow-up
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="admin-tab-content" id="tab-settings">
+        <div class="admin-header"><div class="admin-title" style="color:#484888;">Settings</div></div>
+        
+        <!-- UTR Target -->
+        <div class="dash-card" style="max-width:500px;margin-bottom:20px;">
+          <div class="card-title">UTR Target</div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <input type="number" id="utrTargetInput" min="1" max="100" value="75"
+              style="width:100px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--font);font-size:16px;font-weight:600;outline:none;">
+            <span style="font-size:16px;color:var(--text2);">%</span>
+            <button onclick="saveTarget()" style="padding:10px 20px;border-radius:10px;border:none;background:#484888;color:white;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;">Save</button>
+          </div>
+          <p style="font-size:12px;color:var(--text3);margin-top:8px;">Current target shown in dashboard</p>
+        </div>
+
+        <!-- Workers -->
+        <div class="dash-card" style="max-width:500px;">
+          <div class="card-title">Workers</div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <input type="text" id="newWorkerInput" placeholder="Worker name"
+              style="flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--font);font-size:14px;outline:none;">
+            <button onclick="addWorker()" style="padding:10px 20px;border-radius:10px;border:none;background:#484888;color:white;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;">+ Add</button>
+          </div>
+          <div id="workersList" style="display:flex;flex-direction:column;gap:8px;">
+            <p style="font-size:13px;color:var(--text3);">Loading...</p>
           </div>
         </div>
       </div>
@@ -691,7 +724,7 @@ function clearTimerState() {
 
 // Restore timer if active
 document.addEventListener('DOMContentLoaded', function() {
-  if (!window.location.search.includes('admin')) restoreTimerState();
+  if (!window.location.search.includes('admin')) { restoreTimerState(); loadWorkersDropdown(); }
 });
 
 // Auto-detect admin mode
@@ -879,6 +912,8 @@ function showAdmin() {
   loadLog();
   loadActiveOrders();
   loadLiveStatus();
+  loadTarget();
+  loadWorkersList();
   setInterval(updateUTR, 30000);
   setInterval(loadLiveStatus, 10000);
 }
@@ -905,6 +940,84 @@ function showToast(msg) {
 setInterval(() => {
   ['00:24:10','00:08:33','00:15:00','00:31:07'].forEach((t,i) => {});
 }, 1000);
+
+
+async function saveTarget() {
+  const val = document.getElementById('utrTargetInput').value;
+  if (!val || val < 1 || val > 100) { showToast('Enter a valid target (1-100)'); return; }
+  try {
+    await _supabase.from('settings').upsert({ key: 'utr_target', value: val.toString() });
+    showToast('Target saved!');
+    updateUTR();
+  } catch(e) { showToast('Error saving target'); }
+}
+
+async function loadTarget() {
+  try {
+    const { data } = await _supabase.from('settings').select('value').eq('key', 'utr_target').single();
+    if (data) {
+      document.getElementById('utrTargetInput').value = data.value;
+      window._utrTarget = parseInt(data.value);
+    }
+  } catch(e) {}
+}
+
+async function addWorker() {
+  const val = document.getElementById('newWorkerInput').value.trim();
+  if (!val) { showToast('Enter worker name'); return; }
+  try {
+    await _supabase.from('workers').insert({ name: val });
+    document.getElementById('newWorkerInput').value = '';
+    showToast('Worker added!');
+    loadWorkersList();
+    loadWorkersDropdown();
+  } catch(e) { showToast('Error adding worker'); }
+}
+
+async function removeWorker(id) {
+  try {
+    await _supabase.from('workers').update({ is_active: false }).eq('id', id);
+    loadWorkersList();
+    loadWorkersDropdown();
+  } catch(e) {}
+}
+
+async function loadWorkersList() {
+  try {
+    const { data } = await _supabase.from('workers').select('*').eq('is_active', true).order('created_at');
+    const container = document.getElementById('workersList');
+    if (!container) return;
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p style="font-size:13px;color:var(--text3);">No workers yet</p>';
+      return;
+    }
+    container.innerHTML = '';
+    data.forEach(w => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);';
+      row.innerHTML = `<span style="font-size:13px;font-weight:500;">${w.name}</span>
+        <button onclick="removeWorker('${w.id}')" style="background:rgba(234,67,93,0.12);color:#EA435D;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">Remove</button>`;
+      container.appendChild(row);
+    });
+  } catch(e) {}
+}
+
+async function loadWorkersDropdown() {
+  try {
+    const { data } = await _supabase.from('workers').select('name').eq('is_active', true).order('created_at');
+    const select = document.getElementById('workerSelect');
+    if (!select || !data) return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">-- Select Your Name --</option>';
+    data.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.name;
+      opt.textContent = w.name;
+      select.appendChild(opt);
+    });
+    if (currentVal) select.value = currentVal;
+  } catch(e) {}
+}
 
 async function addOrder() {
   const val = document.getElementById('newOrderInput').value.trim();
@@ -1027,6 +1140,7 @@ async function updateUTR() {
 
     const orderSeconds = todayData.filter(s => s.category === 'Order').reduce((a,b) => a + (b.duration_seconds||0), 0);
     const utr = Math.min(100, Math.round((orderSeconds / workdaySeconds) * 100));
+    const target = window._utrTarget || 75;
     console.log('UTR:', utr, 'orderSeconds:', orderSeconds);
     
     const utrEl = document.getElementById('adminUtrVal');
@@ -1034,8 +1148,8 @@ async function updateUTR() {
     
     const utrStatusEl = document.getElementById('utrStatus');
     if (utrStatusEl) {
-      utrStatusEl.textContent = utr + '% ' + (utr >= 75 ? '✓' : '✗');
-      utrStatusEl.style.color = utr >= 75 ? '#484888' : '#EA435D';
+      utrStatusEl.textContent = utr + '% ' + (utr >= target ? '✓' : '✗');
+      utrStatusEl.style.color = utr >= target ? '#484888' : '#EA435D';
     }
 
     const activeWorkers = [...new Set(todayData.map(s => s.worker_name))].length;
