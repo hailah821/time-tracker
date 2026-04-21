@@ -10,6 +10,8 @@ const SUPABASE_URL = 'https://vuuamwlrnyobhlxtblzk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-TqYC3XjS5ZBu3Zi4kgRBQ_KjJxaXXq';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -435,6 +437,9 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       <div class="nav-item" onclick="adminNav(this,'dailyutr')">
         <span class="nav-icon">📅</span> Daily UTR
       </div>
+      <div class="nav-item" onclick="adminNav(this,'map')">
+        <span class="nav-icon">📍</span> Live Map
+      </div>
     </div>
 
     <!-- Main -->
@@ -558,6 +563,14 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
             Below 75% needs follow-up
           </div>
+        </div>
+      </div>
+
+      <!-- Live Map -->
+      <div class="admin-tab-content" id="tab-map">
+        <div class="admin-header"><div class="admin-title" style="color:#484888;">Live Worker Map</div></div>
+        <div class="dash-card" style="padding:0;overflow:hidden;">
+          <div id="workerMap" style="height:450px;width:100%;border-radius:14px;"></div>
         </div>
       </div>
 
@@ -859,10 +872,18 @@ async function startTimer() {
   const order = selectedCatVal === 'Order' ? document.getElementById('orderInput').value : null;
   try {
     await _supabase.from('active_sessions').delete().eq('worker_name', name);
+    let lat = null, lng = null;
+    try {
+      const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, {timeout:5000}));
+      lat = pos.coords.latitude;
+      lng = pos.coords.longitude;
+    } catch(e) { console.log('Location not available'); }
     await _supabase.from('active_sessions').insert({
       worker_name: name,
       category: selectedCatVal,
-      order_id: order
+      order_id: order,
+      latitude: lat,
+      longitude: lng
     });
     console.log('Active session saved!', name, selectedCatVal);
     saveTimerState();
@@ -938,6 +959,11 @@ function adminNav(el, tab) {
   el.classList.add('active');
   document.querySelectorAll('.admin-tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
+  if (tab === 'map') { setTimeout(() => { loadWorkerMap(); }, 100); }
+  if (tab === 'dailyutr') loadDailyUTR();
+  if (tab === 'log') loadLog();
+  if (tab === 'settings') { loadWorkersList(); }
+  if (tab === 'createorder') loadActiveOrders();
 }
 
 function showToast(msg) {
@@ -953,6 +979,53 @@ setInterval(() => {
 }, 1000);
 
 
+
+
+let _map = null;
+let _mapMarkers = [];
+
+function initMap() {
+  if (_map) return;
+  _map = L.map('workerMap').setView([24.7136, 46.6753], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(_map);
+}
+
+async function loadWorkerMap() {
+  try {
+    if (!_map) initMap();
+    // Remove old markers
+    _mapMarkers.forEach(m => m.remove());
+    _mapMarkers = [];
+    
+    const { data } = await _supabase.from('active_sessions')
+      .select('*')
+      .not('latitude', 'is', null);
+    
+    if (!data || data.length === 0) {
+      return;
+    }
+    
+    const bounds = [];
+    data.forEach(s => {
+      if (!s.latitude || !s.longitude) return;
+      const color = s.category === 'Order' ? '#484888' : s.category === 'Housekeeping' ? '#8A4B5E' : '#888';
+      const icon = L.divIcon({
+        html: `<div style="background:${color};color:white;padding:4px 8px;border-radius:20px;font-size:11px;font-family:sans-serif;white-space:nowrap;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.3);">${s.worker_name}</div>`,
+        className: '',
+        iconAnchor: [0, 0]
+      });
+      const marker = L.marker([s.latitude, s.longitude], { icon }).addTo(_map);
+      marker.bindPopup(`<b>${s.worker_name}</b><br>${s.category}${s.order_id ? ' — ' + s.order_id : ''}`);
+      _mapMarkers.push(marker);
+      bounds.push([s.latitude, s.longitude]);
+    });
+    
+    if (bounds.length > 0) _map.fitBounds(bounds, { padding: [50, 50] });
+    setTimeout(() => { if (_map) _map.invalidateSize(); }, 100);
+  } catch(e) { console.error('map error:', e); }
+}
 
 async function saveDailyUTR(utr, target) {
   try {
