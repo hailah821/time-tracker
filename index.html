@@ -10,6 +10,12 @@ const SUPABASE_URL = 'https://vuuamwlrnyobhlxtblzk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-TqYC3XjS5ZBu3Zi4kgRBQ_KjJxaXXq';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#484888">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ygii">
+<link rel="apple-touch-icon" href="/logo.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -1421,6 +1427,16 @@ async function loadLog() {
   } catch(e) { console.error('Log error:', e); }
 }
 
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => console.log('SW registered'))
+      .catch(err => console.log('SW error:', err));
+  });
+}
 </script>
 </body>
 </html>
