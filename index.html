@@ -1455,6 +1455,39 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('SW error:', err));
   });
 }
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  if (!email || !password) { errEl.style.display='block'; errEl.textContent='Please enter email and password'; return; }
+  errEl.style.display='none';
+  try {
+    const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+    if (error) { errEl.textContent='Invalid email or password'; errEl.style.display='block'; return; }
+    goToApp();
+  } catch(e) { errEl.textContent='Error. Try again.'; errEl.style.display='block'; }
+}
+
+function goToApp() {
+  document.getElementById('loginPage').classList.remove('active');
+  const isAdmin = window.location.search.includes('admin');
+  if (isAdmin) {
+    document.getElementById('adminPage').classList.add('active');
+    showAdmin();
+  } else {
+    document.getElementById('workerPage').classList.add('active');
+    restoreTimerState();
+    loadWorkersDropdown();
+  }
+}
+
+async function checkAuth() {
+  try {
+    const { data } = await _supabase.auth.getSession();
+    if (data && data.session) goToApp();
+  } catch(e) {}
+}
 </script>
 </body>
 </html>
