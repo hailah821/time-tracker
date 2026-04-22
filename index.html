@@ -1019,9 +1019,15 @@ async function loadWorkerMap() {
     }
     
     const bounds = [];
+    const workerColors = ['#484888', '#EA435D', '#ECC371', '#1D9E75', '#378ADD'];
+    const workerColorMap = {};
+    let colorIdx = 0;
     data.forEach(s => {
       if (!s.latitude || !s.longitude) return;
-      const color = s.category === 'Order' ? '#484888' : s.category === 'Housekeeping' ? '#8A4B5E' : '#888';
+      if (!workerColorMap[s.worker_name]) {
+        workerColorMap[s.worker_name] = workerColors[colorIdx++ % workerColors.length];
+      }
+      const color = workerColorMap[s.worker_name];
       const icon = L.divIcon({
         html: `<div style="background:${color};color:white;padding:4px 8px;border-radius:20px;font-size:11px;font-family:sans-serif;white-space:nowrap;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.3);">${s.worker_name}</div>`,
         className: '',
