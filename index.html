@@ -1082,8 +1082,13 @@ async function loadTarget() {
   try {
     const { data } = await _supabase.from('settings').select('value').eq('key', 'utr_target').single();
     if (data) {
-      document.getElementById('utrTargetInput').value = data.value;
       window._utrTarget = parseInt(data.value);
+      // Update target display if exists
+      const input = document.getElementById('utrTargetInput');
+      if (input) input.value = data.value;
+      // Update target text in dashboard
+      const targetDisplay = document.getElementById('targetDisplay');
+      if (targetDisplay) targetDisplay.textContent = 'Target: ' + data.value + '%+';
     }
   } catch(e) {}
 }
