@@ -874,10 +874,17 @@ async function startTimer() {
     await _supabase.from('active_sessions').delete().eq('worker_name', name);
     let lat = null, lng = null;
     try {
-      const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, {timeout:5000}));
+      const pos = await new Promise((res, rej) => 
+        navigator.geolocation.getCurrentPosition(res, rej, {
+          timeout: 15000,
+          maximumAge: 0,
+          enableHighAccuracy: true
+        })
+      );
       lat = pos.coords.latitude;
       lng = pos.coords.longitude;
-    } catch(e) { console.log('Location not available'); }
+      console.log('Location:', lat, lng);
+    } catch(e) { console.log('Location error:', e.message); }
     await _supabase.from('active_sessions').insert({
       worker_name: name,
       category: selectedCatVal,
