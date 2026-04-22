@@ -887,6 +887,22 @@ async function startTimer() {
         lat = pos.coords.latitude;
         lng = pos.coords.longitude;
         console.log('Location:', lat, lng);
+        
+        // Start continuous tracking
+        if (window._locationWatcher) navigator.geolocation.clearWatch(window._locationWatcher);
+        window._locationWatcher = navigator.geolocation.watchPosition(async (pos) => {
+          const newLat = pos.coords.latitude;
+          const newLng = pos.coords.longitude;
+          const wName = document.getElementById('workerSelect').value;
+          if (wName) {
+            try {
+              await _supabase.from('active_sessions')
+                .update({ latitude: newLat, longitude: newLng })
+                .eq('worker_name', wName);
+            } catch(e) {}
+          }
+        }, null, { enableHighAccuracy: true, maximumAge: 5000 });
+        
       } catch(e) { console.log('Location error:', e.message); }
     }
     await _supabase.from('active_sessions').insert({
@@ -925,6 +941,11 @@ async function completeTask() {
   const categoryToSave = selectedCatVal || 'Unknown';
   const orderToSave = categoryToSave === 'Order' ? (document.getElementById('orderInput').value || null) : null;
   clearTimerState();
+  // Stop location tracking
+  if (window._locationWatcher) {
+    navigator.geolocation.clearWatch(window._locationWatcher);
+    window._locationWatcher = null;
+  }
   // Remove from active sessions
   try {
     await _supabase.from('active_sessions').delete().eq('worker_name', name);
@@ -959,6 +980,7 @@ async function showAdmin() {
   loadDailyUTR();
   setInterval(updateUTR, 30000);
   setInterval(loadLiveStatus, 10000);
+  setInterval(loadWorkerMap, 5000);
 }
 function showWorker() {
   document.getElementById('adminPage').classList.remove('active');
