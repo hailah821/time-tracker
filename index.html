@@ -689,14 +689,31 @@ function saveTimerState() {
   localStorage.setItem('timerStarted', Date.now() - (seconds * 1000));
 }
 
-function restoreTimerState() {
+async function restoreTimerState() {
+  // Try localStorage first
   const active = localStorage.getItem('timerActive');
-  if (!active) return;
+  let workerName = localStorage.getItem('timerWorker');
+  let category = localStorage.getItem('timerCategory');
+  let order = localStorage.getItem('timerOrder') || '';
+  let startedAt = parseInt(localStorage.getItem('timerStarted'));
   
-  const workerName = localStorage.getItem('timerWorker');
-  const category = localStorage.getItem('timerCategory');
-  const order = localStorage.getItem('timerOrder') || '';
-  const startedAt = parseInt(localStorage.getItem('timerStarted'));
+  // If no localStorage, try Supabase active_sessions
+  if (!active || !workerName) {
+    try {
+      const { data: session } = await _supabase.auth.getSession();
+      if (!session || !session.session) return;
+      const email = session.session.user.email;
+      const { data } = await _supabase.from('active_sessions').select('*').limit(10);
+      if (!data || data.length === 0) return;
+      // Find session for this user
+      const userSession = data[0]; // Get first active session
+      if (!userSession) return;
+      workerName = userSession.worker_name;
+      category = userSession.category;
+      order = userSession.order_id || '';
+      startedAt = new Date(userSession.started_at).getTime();
+    } catch(e) { return; }
+  }
   
   if (!workerName || !category || !startedAt) return;
   
