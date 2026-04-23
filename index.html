@@ -313,6 +313,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 <!-- ═══════════════════ WORKER PAGE ═══════════════════ -->
 <div class="page" id="workerPage">
 
+  <button class="switch-btn" onclick="signOut()" style="left:auto;right:20px;bottom:70px;">Sign Out</button>
   <!-- S1: QR Scan -->
   <div class="worker-wrap" id="ws1" style="display:none;">
     <div class="top-bar">
@@ -1473,6 +1474,12 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+
+async function signOut() {
+  await _supabase.auth.signOut();
+  localStorage.clear();
+  window.location.reload();
+}
 async function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
