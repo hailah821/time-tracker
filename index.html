@@ -1355,7 +1355,7 @@ async function updateUTR() {
     const orderSeconds = todayData.filter(s => s.category === 'Order').reduce((a,b) => a + (b.duration_seconds||0), 0);
     const utr = Math.min(100, Math.round((orderSeconds / workdaySeconds) * 100));
     const target = window._utrTarget || 75;
-    saveDailyUTR(utr, target);
+    if (todayData.length > 0) saveDailyUTR(utr, target);
     console.log('UTR:', utr, 'orderSeconds:', orderSeconds);
     
     const utrEl = document.getElementById('adminUtrVal');
