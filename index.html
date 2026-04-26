@@ -682,12 +682,14 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 <script>
 
 function saveTimerState() {
-  localStorage.setItem('timerActive', 'true');
-  localStorage.setItem('timerSeconds', seconds);
-  localStorage.setItem('timerCategory', selectedCatVal);
-  localStorage.setItem('timerWorker', document.getElementById('workerSelect').value);
-  localStorage.setItem('timerOrder', document.getElementById('orderInput').value || '');
-  localStorage.setItem('timerStarted', Date.now() - (seconds * 1000));
+  try {
+    localStorage.setItem('timerActive', 'true');
+    localStorage.setItem('timerSeconds', seconds);
+    localStorage.setItem('timerCategory', selectedCatVal);
+    localStorage.setItem('timerWorker', document.getElementById('workerSelect').value);
+    localStorage.setItem('timerOrder', document.getElementById('orderInput').value || '');
+    localStorage.setItem('timerStarted', Date.now() - (seconds * 1000));
+  } catch(e) {}
 }
 
 async function restoreTimerState() {
@@ -1509,8 +1511,19 @@ function goToApp() {
 async function checkAuth() {
   try {
     const { data } = await _supabase.auth.getSession();
-    if (data && data.session) goToApp();
-  } catch(e) {}
+    if (data && data.session) {
+      // Verify session is still valid
+      const { data: user, error } = await _supabase.auth.getUser();
+      if (!error && user) {
+        goToApp();
+        return;
+      }
+    }
+    // Show login
+    document.getElementById('loginPage').classList.add('active');
+  } catch(e) {
+    document.getElementById('loginPage').classList.add('active');
+  }
 }
 </script>
 </body>
