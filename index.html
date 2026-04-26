@@ -1334,10 +1334,22 @@ async function loadLiveStatus() {
 async function updateUTR() {
   try {
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    // Use local date with timezone offset
+    const offset = today.getTimezoneOffset() * 60000;
+    const localToday = new Date(today - offset);
+    const todayStr = localToday.toISOString().split('T')[0];
+    // Go back 1 day to account for timezone differences
+    const yesterday = new Date(today - 86400000 - offset);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
     const { data, error } = await _supabase.from('sessions')
       .select('worker_name, category, duration_seconds, started_at')
-      .gte('started_at', todayStr + 'T00:00:00.000Z');
+      .gte('started_at', yesterdayStr + 'T21:00:00.000Z');
+    // Filter to today only in local time
+    const todayData = data ? data.filter(s => {
+      const d = new Date(s.started_at);
+      const local = new Date(d.getTime() - offset);
+      return local.toISOString().split('T')[0] === todayStr;
+    }) : [];
     
     if (error) { console.error('Supabase error:', error); return; }
     if (!data || data.length === 0) {
@@ -1348,7 +1360,7 @@ async function updateUTR() {
       return;
     }
     
-    const todayData = data;
+
     
     const workdaySeconds = 8 * 3600;
 
