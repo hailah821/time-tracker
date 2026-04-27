@@ -257,8 +257,8 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   /* Tab navigation */
   .admin-tabs { display: none; }
-  .admin-tab-content { display: none !important; }
-  .admin-tab-content.active { display: block !important; }
+  .admin-tab-content { display: none; }
+  .admin-tab-content.active { display: block; }
 
   /* Toast */
   .toast {
@@ -1021,12 +1021,9 @@ function showWorker() {
 function adminNav(el, tab) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
-  document.querySelectorAll('.admin-tab-content').forEach(t => {
-    t.classList.remove('active');
-    t.style.display = 'none';
-  });
+  document.querySelectorAll('.admin-tab-content').forEach(t => t.classList.remove('active'));
   const tabEl = document.getElementById('tab-'+tab);
-  if (tabEl) { tabEl.classList.add('active'); tabEl.style.display = 'block'; }
+  if (tabEl) tabEl.classList.add('active');
   if (tab === 'map') { setTimeout(() => { loadWorkerMap(); }, 100); }
   if (tab === 'dailyutr') loadDailyUTR();
   if (tab === 'log') loadLog();
