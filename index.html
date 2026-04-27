@@ -871,52 +871,44 @@ function catNext() {
 }
 
 async function startTimer() {
+  const btn = document.getElementById('startBtn');
+  btn.textContent = '📍 Getting location...';
+  btn.disabled = true;
+
+  const name = document.getElementById('workerSelect').value;
+  const order = selectedCatVal === 'Order' ? document.getElementById('orderInput').value : null;
+
+  // Get location first
+  let lat = null, lng = null;
+  if (navigator.geolocation) {
+    try {
+      const pos = await new Promise((res, rej) => 
+        navigator.geolocation.getCurrentPosition(res, rej, {
+          timeout: 15000,
+          maximumAge: 0,
+          enableHighAccuracy: true
+        })
+      );
+      lat = pos.coords.latitude;
+      lng = pos.coords.longitude;
+    } catch(e) { console.log('Location error:', e.message); }
+  }
+
+  // Now start timer
   document.getElementById('startBtn').style.display = 'none';
   document.getElementById('completeBtn').style.display = 'block';
   document.getElementById('backBtn4').style.display = 'none';
+  
   const startTime = Date.now();
   timerInterval = setInterval(() => {
     seconds = Math.floor((Date.now() - startTime) / 1000);
     const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), s = seconds%60;
     document.getElementById('timerDigits').textContent = pad(h)+':'+pad(m)+':'+pad(s);
   }, 500);
-  const name = document.getElementById('workerSelect').value;
-  const order = selectedCatVal === 'Order' ? document.getElementById('orderInput').value : null;
+
+  // Save to active_sessions
   try {
     await _supabase.from('active_sessions').delete().eq('worker_name', name);
-    // Get location first
-    let lat = null, lng = null;
-    if (navigator.geolocation) {
-      try {
-        document.getElementById('startBtn').textContent = '📍 Getting location...';
-        const pos = await new Promise((res, rej) => 
-          navigator.geolocation.getCurrentPosition(res, rej, {
-            timeout: 15000,
-            maximumAge: 0,
-            enableHighAccuracy: true
-          })
-        );
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-        console.log('Location:', lat, lng);
-        
-        // Start continuous tracking
-        if (window._locationWatcher) navigator.geolocation.clearWatch(window._locationWatcher);
-        window._locationWatcher = navigator.geolocation.watchPosition(async (pos) => {
-          const newLat = pos.coords.latitude;
-          const newLng = pos.coords.longitude;
-          const wName = document.getElementById('workerSelect').value;
-          if (wName) {
-            try {
-              await _supabase.from('active_sessions')
-                .update({ latitude: newLat, longitude: newLng })
-                .eq('worker_name', wName);
-            } catch(e) {}
-          }
-        }, null, { enableHighAccuracy: true, maximumAge: 5000 });
-        
-      } catch(e) { console.log('Location error:', e.message); }
-    }
     await _supabase.from('active_sessions').insert({
       worker_name: name,
       category: selectedCatVal,
@@ -924,24 +916,22 @@ async function startTimer() {
       latitude: lat,
       longitude: lng
     });
-    console.log('Active session saved!', name, selectedCatVal);
     saveTimerState();
+
+    // Start continuous tracking
+    if (window._locationWatcher) navigator.geolocation.clearWatch(window._locationWatcher);
+    if (navigator.geolocation) {
+      window._locationWatcher = navigator.geolocation.watchPosition(async (pos) => {
+        try {
+          await _supabase.from('active_sessions')
+            .update({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
+            .eq('worker_name', name);
+        } catch(e) {}
+      }, null, { enableHighAccuracy: true, maximumAge: 5000 });
+    }
   } catch(e) { console.error('active_sessions error:', e); }
 }
 
-
-
-
-function handleComplete(btn) {
-  btn.disabled = true;
-  btn.textContent = 'Saving...';
-  btn.style.opacity = '0.7';
-  completeTask().finally(() => {
-    btn.disabled = false;
-    btn.textContent = '■ Complete Task';
-    btn.style.opacity = '1';
-  });
-}
 
 async function completeTask() {
   clearInterval(timerInterval);
