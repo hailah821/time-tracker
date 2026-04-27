@@ -1083,62 +1083,89 @@ async function saveDailyUTR(utr, target) {
 
 async function loadDailyUTR() {
   try {
-    const { data } = await _supabase.from('daily_utr')
-      .select('*')
-      .order('date', { ascending: false })
-      .limit(60);
     const container = document.getElementById('weeklyUtrCards');
     if (!container) return;
+    container.innerHTML = '<p style="font-size:13px;color:var(--text3);">Loading...</p>';
+
+    // Get all sessions
+    const { data } = await _supabase.from('sessions')
+      .select('worker_name, category, duration_seconds, started_at')
+      .not('duration_seconds', 'is', null)
+      .order('started_at', { ascending: false });
+
     if (!data || data.length === 0) {
       container.innerHTML = '<div class="dash-card"><p style="font-size:13px;color:var(--text3);">No data yet</p></div>';
       return;
     }
-    
+
+    const target = window._utrTarget || 75;
+    const workdaySeconds = 8 * 3600;
+
+    // Group by week
     const weeks = {};
-    data.forEach(d => {
-      const date = new Date(d.date);
-      const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay());
+    data.forEach(s => {
+      const d = new Date(s.started_at);
+      const weekStart = new Date(d);
+      weekStart.setDate(d.getDate() - d.getDay());
+      weekStart.setHours(0,0,0,0);
       const weekKey = weekStart.toISOString().split('T')[0];
       if (!weeks[weekKey]) weeks[weekKey] = [];
-      weeks[weekKey].push(d);
+      weeks[weekKey].push(s);
     });
-    
+
     const weekKeys = Object.keys(weeks).sort((a,b) => b.localeCompare(a));
     container.innerHTML = '';
-    
+
     weekKeys.forEach((weekKey, idx) => {
-      const days = weeks[weekKey];
-      const avgUtr = Math.round(days.reduce((a,b) => a + b.utr_percentage, 0) / days.length);
-      const target = days[0].target_percentage;
-      const achieved = avgUtr >= target;
+      const sessions = weeks[weekKey];
+      const orderSec = sessions.filter(s => s.category === 'Order').reduce((a,b) => a+(b.duration_seconds||0), 0);
+      const totalSec = sessions.reduce((a,b) => a+(b.duration_seconds||0), 0);
+      const utr = Math.min(100, Math.round((orderSec / workdaySeconds) * 100));
+      const achieved = utr >= target;
+
+      // Compare with previous week
       const prevWeekKey = weekKeys[idx + 1];
-      const prevAvg = prevWeekKey ? Math.round(weeks[prevWeekKey].reduce((a,b) => a + b.utr_percentage, 0) / weeks[prevWeekKey].length) : null;
-      const diff = prevAvg !== null ? avgUtr - prevAvg : null;
+      let diff = null;
+      if (prevWeekKey) {
+        const prevSessions = weeks[prevWeekKey];
+        const prevOrderSec = prevSessions.filter(s => s.category === 'Order').reduce((a,b) => a+(b.duration_seconds||0), 0);
+        const prevUtr = Math.min(100, Math.round((prevOrderSec / workdaySeconds) * 100));
+        diff = utr - prevUtr;
+      }
+
       const arrow = diff === null ? '' : diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
       const arrowColor = diff === null ? '' : diff > 0 ? '#1D9E75' : diff < 0 ? '#EA435D' : '#888';
       const weekStartDate = new Date(weekKey).toLocaleDateString('en', {day:'2-digit', month:'short'});
       const weekEndDate = new Date(new Date(weekKey).getTime() + 6*86400000).toLocaleDateString('en', {day:'2-digit', month:'short'});
       const color = achieved ? '#484888' : '#EA435D';
-      
-      const daysHtml = days.map(d => {
-        const dc = d.achieved ? '#484888' : '#EA435D';
-        const dayDate = new Date(d.date).toLocaleDateString('en', {weekday:'short', day:'2-digit'});
-        return '<div style="font-size:11px;padding:3px 8px;border-radius:12px;background:rgba(72,72,136,0.08);color:' + dc + ';">' + dayDate + ': ' + d.utr_percentage + '%</div>';
+
+      // Group by day within week
+      const days = {};
+      sessions.forEach(s => {
+        const dayKey = new Date(s.started_at).toLocaleDateString('en', {weekday:'short', day:'2-digit', month:'short'});
+        if (!days[dayKey]) days[dayKey] = 0;
+        if (s.category === 'Order') days[dayKey] += s.duration_seconds || 0;
+      });
+
+      const daysHtml = Object.entries(days).map(([day, sec]) => {
+        const dayUtr = Math.min(100, Math.round((sec / workdaySeconds) * 100));
+        const dc = dayUtr >= target ? '#484888' : '#EA435D';
+        return '<div style="font-size:11px;padding:3px 8px;border-radius:12px;background:rgba(72,72,136,0.08);color:' + dc + ';">' + day + ': ' + dayUtr + '%</div>';
       }).join('');
-      
+
       const card = document.createElement('div');
       card.className = 'dash-card';
-      card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+      card.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
         '<div><div style="font-size:13px;color:var(--text2);margin-bottom:2px;">' + weekStartDate + ' — ' + weekEndDate + '</div>' +
         '<div style="font-size:11px;color:var(--text3);">Target: ' + target + '%</div></div>' +
         '<div style="text-align:right;">' +
-        '<div style="font-size:28px;font-weight:700;font-family:var(--mono);color:' + color + ';">' + avgUtr + '%</div>' +
-        '<div style="font-size:14px;font-weight:600;color:' + arrowColor + ';">' + arrow + (diff !== null ? ' ' + Math.abs(diff) + '%' : '') + '</div>' +
+        '<div style="font-size:28px;font-weight:700;font-family:var(--mono);color:' + color + ';">' + utr + '%</div>' +
+        (diff !== null ? '<div style="font-size:14px;font-weight:600;color:' + arrowColor + ';">' + arrow + ' ' + Math.abs(diff) + '%</div>' : '') +
         '</div></div>' +
         '<div style="background:var(--surface2);border-radius:8px;height:8px;overflow:hidden;">' +
-        '<div style="height:100%;width:' + Math.min(100,avgUtr) + '%;background:' + color + ';border-radius:8px;"></div></div>' +
-        '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">' + daysHtml + '</div>';
+        '<div style="height:100%;width:' + utr + '%;background:' + color + ';border-radius:8px;"></div></div>' +
+        (daysHtml ? '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">' + daysHtml + '</div>' : '');
       container.appendChild(card);
     });
   } catch(e) { console.error('loadDailyUTR error:', e); }
