@@ -47,8 +47,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   /* ── PAGES ── */
   .page { display: none; min-height: 100vh; pointer-events: none; }
-  .page.active { pointer-events: all; }
-  .page.active { display: flex; flex-direction: column; }
+  .page.active { display: flex; flex-direction: column; pointer-events: all; }
 
   /* ── WORKER APP ── */
   .worker-wrap {
@@ -258,8 +257,8 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   /* Tab navigation */
   .admin-tabs { display: none; }
-  .admin-tab-content { display: none; }
-  .admin-tab-content.active { display: block; }
+  .admin-tab-content { display: none !important; }
+  .admin-tab-content.active { display: block !important; }
 
   /* Toast */
   .toast {
