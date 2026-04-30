@@ -483,7 +483,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           <div class="metric-card">
             <div class="metric-label">Active Workers</div>
             <div class="metric-val" id="adminActiveVal">0</div>
-            <div class="metric-sub">out of 2</div>
+            <div class="metric-sub" id="activeWorkersSub">out of 2</div>
           </div>
           <div class="metric-card">
             <div class="metric-label">Client Orders</div>
@@ -1322,6 +1322,12 @@ async function loadLiveStatus() {
     }
 
     document.getElementById('adminActiveVal').textContent = data.length;
+    // Update total workers count
+    try {
+      const { data: workers } = await _supabase.from('workers').select('id').eq('is_active', true);
+      const subEl = document.getElementById('activeWorkersSub');
+      if (subEl && workers) subEl.textContent = 'out of ' + workers.length;
+    } catch(e) {}
 
     const rows = data.map(s => {
       const pill = s.category === 'Order' 
@@ -1408,9 +1414,7 @@ async function updateUTR() {
       utrStatusEl.style.color = utr >= target ? '#484888' : '#EA435D';
     }
 
-    const activeWorkers = [...new Set(todayData.map(s => s.worker_name))].length;
-    const activeEl = document.getElementById('adminActiveVal');
-    if (activeEl) activeEl.textContent = activeWorkers;
+
 
     const orderCount = todayData.filter(s => s.category === 'Order').length;
     const orderEl = document.getElementById('clientOrdersVal');
