@@ -1129,7 +1129,10 @@ async function loadDailyUTR() {
       const orderSec = sessions.filter(s => s.category === 'Order').reduce((a,b) => a+(b.duration_seconds||0), 0);
       const houseSec = sessions.filter(s => s.category === 'Housekeeping').reduce((a,b) => a+(b.duration_seconds||0), 0);
       const activeSec = orderSec + houseSec;
-      const utr = Math.min(100, Math.round((activeSec / workdaySeconds) * 100));
+      // Count unique days in this week
+      const uniqueDays = new Set(sessions.map(s => new Date(s.started_at).toLocaleDateString())).size;
+      const weekWorkdaySec = workdaySeconds * (uniqueDays || 1);
+      const utr = Math.min(100, Math.round((activeSec / weekWorkdaySec) * 100));
       const achieved = utr >= target;
 
       // Compare with previous week
