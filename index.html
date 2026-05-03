@@ -1128,7 +1128,9 @@ async function loadDailyUTR() {
       const sessions = weeks[weekKey];
       const orderSec = sessions.filter(s => s.category === 'Order').reduce((a,b) => a+(b.duration_seconds||0), 0);
       const totalSec = sessions.reduce((a,b) => a+(b.duration_seconds||0), 0);
-      const utr = Math.min(100, Math.round((orderSec / workdaySeconds) * 100));
+      // Use actual work time if available, otherwise use 8 hours
+      const denominator = totalSec > 0 ? totalSec : workdaySeconds;
+      const utr = Math.min(100, Math.round((orderSec / denominator) * 100));
       const achieved = utr >= target;
 
       // Compare with previous week
@@ -1400,7 +1402,9 @@ async function updateUTR() {
     const workdaySeconds = 8 * 3600;
 
     const orderSeconds = todayData.filter(s => s.category === 'Order').reduce((a,b) => a + (b.duration_seconds||0), 0);
-    const utr = Math.min(100, Math.round((orderSeconds / workdaySeconds) * 100));
+    const totalSeconds2 = todayData.reduce((a,b) => a + (b.duration_seconds||0), 0);
+    const denominator2 = totalSeconds2 > 0 ? totalSeconds2 : workdaySeconds;
+    const utr = Math.min(100, Math.round((orderSeconds / denominator2) * 100));
     const target = window._utrTarget || 75;
     if (todayData.length > 0) saveDailyUTR(utr, target);
     console.log('UTR:', utr, 'orderSeconds:', orderSeconds);
