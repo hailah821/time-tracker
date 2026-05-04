@@ -1111,7 +1111,7 @@ async function loadDailyUTR() {
 
     // Group by week
     const weeks = {};
-    data.filter(s => (s.duration_seconds || 0) >= 10).forEach(s => {
+    data.filter(s => (s.duration_seconds || 0) >= 2700).forEach(s => {
       const d = new Date(s.started_at);
       const weekStart = new Date(d);
       weekStart.setDate(d.getDate() - d.getDay());
@@ -1132,6 +1132,8 @@ async function loadDailyUTR() {
       // Count unique days in this week
       const uniqueDays = new Set(sessions.map(s => new Date(s.started_at).toLocaleDateString())).size;
       const weekWorkdaySec = workdaySeconds * (uniqueDays || 1);
+      const totalWeekSec = sessions.reduce((a,b) => a+(b.duration_seconds||0), 0);
+      // Skip empty weeks
       const utr = Math.min(100, Math.round((activeSec / weekWorkdaySec) * 100));
       const achieved = utr >= target;
 
@@ -1383,7 +1385,7 @@ async function updateUTR() {
     const { data, error } = await _supabase.from('sessions')
       .select('worker_name, category, duration_seconds, started_at')
       .gte('started_at', yesterdayStr + 'T21:00:00.000Z')
-      .gte('duration_seconds', 10);
+      .gte('duration_seconds', 2700);
     // Filter to today only in local time
     const todayData = data ? data.filter(s => {
       const d = new Date(s.started_at);
