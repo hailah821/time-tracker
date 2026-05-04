@@ -1427,8 +1427,8 @@ async function updateUTR() {
     const orderSeconds = todayData.filter(s => s.category === 'Order').reduce((a,b) => a + (b.duration_seconds||0), 0);
     const houseSeconds = todayData.filter(s => s.category === 'Housekeeping').reduce((a,b) => a + (b.duration_seconds||0), 0);
     const activeSeconds = orderSeconds + houseSeconds;
-    const utr = Math.min(100, Math.round((activeSeconds / workdaySeconds) * 100));
     const target = window._utrTarget || 75;
+    const utr = Math.min(target, Math.round((activeSeconds / workdaySeconds) * 100));
     if (todayData.length > 0) saveDailyUTR(utr, target);
     console.log('UTR:', utr, 'orderSeconds:', orderSeconds);
     
