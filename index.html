@@ -583,6 +583,10 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         <div class="dash-card" style="max-width:500px;">
           <div class="card-title">Utilization rate per worker</div>
           <div id="utrWorkerBars"></div>
+        <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
+          <div class="card-title">Worker UTR History</div>
+          <div id="workerUtrHistory"></div>
+        </div>
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">
             Below 75% needs follow-up
           </div>
@@ -1004,6 +1008,7 @@ function adminNav(el, tab) {
   const tabEl = document.getElementById('tab-'+tab);
   if (tabEl) tabEl.classList.add('active');
   if (tab === 'map') { setTimeout(() => { loadWorkerMap(); }, 100); }
+  if (tab === 'users') loadWorkerUtrHistory();
   if (tab === 'dailyutr') loadDailyUTR();
   if (tab === 'log') loadLog();
   if (tab === 'settings') { loadWorkersList(); }
@@ -1075,6 +1080,92 @@ async function loadWorkerMap() {
     if (bounds.length > 0) _map.fitBounds(bounds, { padding: [50, 50] });
     setTimeout(() => { if (_map) _map.invalidateSize(); }, 100);
   } catch(e) { console.error('map error:', e); }
+}
+
+
+async function saveDailyWorkerUTR() {
+  try {
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const todayStr = new Date(today - offset).toISOString().split('T')[0];
+    const workdaySeconds = 8 * 3600;
+    const target = window._utrTarget || 75;
+
+    const { data } = await _supabase.from('sessions')
+      .select('worker_name, category, duration_seconds, started_at')
+      .not('duration_seconds', 'is', null);
+
+    if (!data) return;
+
+    // Filter today
+    const todayData = data.filter(s => {
+      const d = new Date(s.started_at);
+      return new Date(d - offset).toISOString().split('T')[0] === todayStr;
+    });
+
+    // Group by worker
+    const workers = [...new Set(todayData.map(s => s.worker_name))];
+    for (const worker of workers) {
+      const ws = todayData.filter(s => s.worker_name === worker);
+      const orderSec = ws.filter(s => s.category === 'Order').reduce((a,b) => a+(b.duration_seconds||0), 0);
+      const houseSec = ws.filter(s => s.category === 'Housekeeping').reduce((a,b) => a+(b.duration_seconds||0), 0);
+      const utr = Math.min(target, Math.round(((orderSec + houseSec) / workdaySeconds) * 100));
+      
+      await _supabase.from('daily_worker_utr').upsert({
+        date: todayStr,
+        worker_name: worker,
+        utr_percentage: utr,
+        order_seconds: orderSec,
+        house_seconds: houseSec
+      });
+    }
+  } catch(e) { console.error('saveDailyWorkerUTR:', e); }
+}
+
+
+async function loadWorkerUtrHistory() {
+  try {
+    const { data } = await _supabase.from('daily_worker_utr')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(30);
+    
+    const container = document.getElementById('workerUtrHistory');
+    if (!container) return;
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p style="font-size:13px;color:var(--text3);">No history yet</p>';
+      return;
+    }
+
+    const target = window._utrTarget || 75;
+    const workers = [...new Set(data.map(d => d.worker_name))];
+    
+    container.innerHTML = '';
+    workers.forEach(worker => {
+      const workerData = data.filter(d => d.worker_name === worker);
+      
+      const workerDiv = document.createElement('div');
+      workerDiv.style.cssText = 'margin-bottom:16px;';
+      workerDiv.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">' + worker + '</div>';
+      
+      const daysDiv = document.createElement('div');
+      daysDiv.style.cssText = 'display:flex;flex-direction:column;gap:6px;';
+      
+      workerData.slice(0, 7).forEach(d => {
+        const color = d.utr_percentage >= target ? '#484888' : '#EA435D';
+        const date = new Date(d.date).toLocaleDateString('en', {weekday:'short', day:'2-digit', month:'short'});
+        daysDiv.innerHTML += '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div style="font-size:12px;color:var(--text2);width:90px;">' + date + '</div>' +
+          '<div style="flex:1;background:var(--surface2);border-radius:6px;height:8px;overflow:hidden;">' +
+          '<div style="width:' + d.utr_percentage + '%;height:100%;background:' + color + ';border-radius:6px;"></div></div>' +
+          '<div style="font-size:12px;font-family:var(--mono);font-weight:600;color:' + color + ';width:40px;text-align:right;">' + d.utr_percentage + '%</div>' +
+          '</div>';
+      });
+      
+      workerDiv.appendChild(daysDiv);
+      container.appendChild(workerDiv);
+    });
+  } catch(e) { console.error('loadWorkerUtrHistory:', e); }
 }
 
 async function saveDailyUTR(utr, target) {
@@ -1429,7 +1520,7 @@ async function updateUTR() {
     const activeSeconds = orderSeconds + houseSeconds;
     const target = window._utrTarget || 75;
     const utr = Math.min(target, Math.round((activeSeconds / workdaySeconds) * 100));
-    if (todayData.length > 0) saveDailyUTR(utr, target);
+    if (todayData.length > 0) { saveDailyUTR(utr, target); saveDailyWorkerUTR(); }
     console.log('UTR:', utr, 'orderSeconds:', orderSeconds);
     
     const utrEl = document.getElementById('adminUtrVal');
