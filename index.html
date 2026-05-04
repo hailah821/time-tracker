@@ -1403,8 +1403,7 @@ async function updateUTR() {
     const yesterdayStr = yesterday.toISOString().split('T')[0];
     const { data, error } = await _supabase.from('sessions')
       .select('worker_name, category, duration_seconds, started_at')
-      .gte('started_at', yesterdayStr + 'T21:00:00.000Z')
-      .gte('duration_seconds', 2700);
+      .gte('started_at', yesterdayStr + 'T21:00:00.000Z');
     // Filter to today only in local time
     const todayData = data ? data.filter(s => {
       const d = new Date(s.started_at);
