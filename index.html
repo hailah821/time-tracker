@@ -1254,8 +1254,8 @@ async function loadDailyUTR() {
       const weekStartDate = new Date(weekKey).toLocaleDateString('en', {day:'2-digit', month:'short'});
       const weekEndDate = new Date(new Date(weekKey).getTime() + 6*86400000).toLocaleDateString('en', {day:'2-digit', month:'short'});
       const color = achieved ? '#484888' : '#EA435D';
-      const arrow = diff === null ? '' : diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
-      const arrowColor = diff === null ? '' : diff > 0 ? '#1D9E75' : diff < 0 ? '#EA435D' : '#888';
+      const arrow = diff === null ? '' : achieved ? '✓' : diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+      const arrowColor = diff === null ? '' : achieved ? '#1D9E75' : diff > 0 ? '#1D9E75' : diff < 0 ? '#EA435D' : '#888';
 
       // Build day bars
       let dayBarsHtml = '<div style="display:flex;gap:6px;align-items:flex-end;height:80px;margin-top:16px;">';
