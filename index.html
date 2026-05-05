@@ -1205,7 +1205,9 @@ async function loadDailyUTR() {
     data.forEach(s => {
       const d = new Date(s.started_at);
       const weekStart = new Date(d);
-      weekStart.setDate(d.getDate() - d.getDay());
+      const dayOfWeek = d.getDay();
+      // Week starts on Sunday (0)
+      weekStart.setDate(d.getDate() - dayOfWeek);
       weekStart.setHours(0,0,0,0);
       const weekKey = weekStart.toISOString().split('T')[0];
       if (!weeks[weekKey]) weeks[weekKey] = {};
@@ -1519,7 +1521,10 @@ async function updateUTR() {
     const houseSeconds = todayData.filter(s => s.category === 'Housekeeping').reduce((a,b) => a + (b.duration_seconds||0), 0);
     const activeSeconds = orderSeconds + houseSeconds;
     const target = window._utrTarget || 75;
-    const utr = Math.min(target, Math.round((activeSeconds / workdaySeconds) * 100));
+    // Divide by (8hrs * number of unique workers)
+    const uniqueWorkers = [...new Set(todayData.map(s => s.worker_name))].length || 1;
+    const totalWorkdaySeconds = workdaySeconds * uniqueWorkers;
+    const utr = Math.min(target, Math.round((activeSeconds / totalWorkdaySeconds) * 100));
     if (todayData.length > 0) { saveDailyUTR(utr, target); saveDailyWorkerUTR(); }
     console.log('UTR:', utr, 'orderSeconds:', orderSeconds);
     
@@ -1572,7 +1577,7 @@ async function updateUTR() {
       workerNames.forEach(name => {
         const workerSessions = todayData.filter(s => s.worker_name === name);
         const workerOrderSec = workerSessions.filter(s=>s.category==='Order').reduce((a,b)=>a+(b.duration_seconds||0),0);
-        const workerUtr = Math.min(100, Math.round((workerOrderSec / workdaySeconds) * 100));
+        const workerUtr = Math.min(target, Math.round((workerOrderSec / workdaySeconds) * 100));
         const color = workerUtr >= 75 ? '#484888' : workerUtr >= 50 ? '#ECC371' : '#EA435D';
         utrBars.innerHTML += `<div class="bar-item">
           <div class="bar-info"><span class="name">${name}</span><span class="pct" style="color:${color};">${workerUtr}%</span></div>
