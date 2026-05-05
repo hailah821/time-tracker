@@ -1245,7 +1245,7 @@ async function loadDailyUTR() {
           const s = prevDayData[dk];
           const o = s.filter(x => x.category === 'Order').reduce((a,b) => a+(b.duration_seconds||0), 0);
           const h = s.filter(x => x.category === 'Housekeeping').reduce((a,b) => a+(b.duration_seconds||0), 0);
-          return Math.min(100, Math.round(((o+h)/workdaySeconds)*100));
+          return Math.min(target, Math.round(((o+h)/workdaySeconds)*100));
         });
         const prevAvg = prevUtrs.length > 0 ? Math.round(prevUtrs.reduce((a,b) => a+b, 0) / prevUtrs.length) : 0;
         diff = weekAvg - prevAvg;
