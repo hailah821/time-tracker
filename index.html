@@ -1495,8 +1495,9 @@ async function updateUTR() {
     // Filter to today only in local time
     const todayData = data ? data.filter(s => {
       const d = new Date(s.started_at);
-      const local = new Date(d.getTime() - offset);
-      return local.toISOString().split('T')[0] === todayStr;
+      // Compare using local date
+      const localDate = d.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      return localDate === todayStr;
     }) : [];
     
     if (error) { console.error('Supabase error:', error); return; }
