@@ -675,29 +675,31 @@ function saveTimerState() {
 }
 
 async function restoreTimerState() {
-  // Try localStorage first
-  const active = localStorage.getItem('timerActive');
-  let workerName = localStorage.getItem('timerWorker');
-  let category = localStorage.getItem('timerCategory');
-  let order = localStorage.getItem('timerOrder') || '';
-  let startedAt = parseInt(localStorage.getItem('timerStarted'));
+  let workerName, category, order = '', startedAt;
   
-  // If no localStorage, try Supabase active_sessions
-  if (!active || !workerName) {
-    try {
-      const { data: session } = await _supabase.auth.getSession();
-      if (!session || !session.session) return;
-      const email = session.session.user.email;
+  // Always check Supabase active_sessions first (most reliable)
+  try {
+    const { data: session } = await _supabase.auth.getSession();
+    if (session && session.session) {
       const { data } = await _supabase.from('active_sessions').select('*').limit(10);
-      if (!data || data.length === 0) return;
-      // Find session for this user
-      const userSession = data[0]; // Get first active session
-      if (!userSession) return;
-      workerName = userSession.worker_name;
-      category = userSession.category;
-      order = userSession.order_id || '';
-      startedAt = new Date(userSession.started_at).getTime();
-    } catch(e) { return; }
+      if (data && data.length > 0) {
+        const userSession = data[0];
+        workerName = userSession.worker_name;
+        category = userSession.category;
+        order = userSession.order_id || '';
+        startedAt = new Date(userSession.started_at).getTime();
+      }
+    }
+  } catch(e) {}
+  
+  // Fallback to localStorage
+  if (!workerName) {
+    const active = localStorage.getItem('timerActive');
+    if (!active) return;
+    workerName = localStorage.getItem('timerWorker');
+    category = localStorage.getItem('timerCategory');
+    order = localStorage.getItem('timerOrder') || '';
+    startedAt = parseInt(localStorage.getItem('timerStarted'));
   }
   
   if (!workerName || !category || !startedAt) return;
