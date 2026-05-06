@@ -1666,7 +1666,10 @@ async function goToApp() {
     const wp = document.getElementById('workerPage');
     if (wp) wp.classList.add('active');
     await loadWorkersDropdown();
-    await restoreTimerState();
+    // Wait a bit for DOM to update then restore timer
+    setTimeout(async () => {
+      await restoreTimerState();
+    }, 300);
   }
 }
 
