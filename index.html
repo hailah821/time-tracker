@@ -1577,7 +1577,8 @@ async function updateUTR() {
       workerNames.forEach(name => {
         const workerSessions = todayData.filter(s => s.worker_name === name);
         const workerOrderSec = workerSessions.filter(s=>s.category==='Order').reduce((a,b)=>a+(b.duration_seconds||0),0);
-        const workerUtr = Math.min(target, Math.round((workerOrderSec / workdaySeconds) * 100));
+        const workerHouseSec = workerSessions.filter(s=>s.category==='Housekeeping').reduce((a,b)=>a+(b.duration_seconds||0),0);
+        const workerUtr = Math.min(target, Math.round(((workerOrderSec + workerHouseSec) / workdaySeconds) * 100));
         const color = workerUtr >= 75 ? '#484888' : workerUtr >= 50 ? '#ECC371' : '#EA435D';
         utrBars.innerHTML += `<div class="bar-item">
           <div class="bar-info"><span class="name">${name}</span><span class="pct" style="color:${color};">${workerUtr}%</span></div>
