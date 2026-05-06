@@ -1612,7 +1612,7 @@ async function updateUTR() {
 async function loadLog() {
   try {
     const { data } = await _supabase.from('sessions')
-      .select('*').order('completed_at', { ascending: false }).limit(20);
+      .select('*').order('started_at', { ascending: false }).limit(20);
     if (!data) return;
     const logBody = document.getElementById('logBody');
     if (!logBody) return;
@@ -1624,10 +1624,11 @@ async function loadLog() {
       const pill = s.category==='Order' ? '<span class="status-pill pill-order">Order</span>'
         : s.category==='Housekeeping' ? '<span class="status-pill pill-house">Housekeeping</span>'
         : '<span class="status-pill pill-idle">Idle</span>';
-      const time = s.completed_at ? new Date(s.completed_at).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}) : '—';
-      const date = s.completed_at ? new Date(s.completed_at).toLocaleDateString('en',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+      const startTime = s.started_at ? new Date(s.started_at).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const endTime = s.completed_at ? new Date(s.completed_at).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const date = s.started_at ? new Date(s.started_at).toLocaleDateString('en',{day:'2-digit',month:'short',year:'numeric'}) : '—';
       const row = document.createElement('tr');
-      row.innerHTML = `<td>${s.worker_name}</td><td>${pill}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">${s.order_id||'—'}</td><td style="font-size:12px;">${date}</td><td style="font-size:12px;">${time}</td><td class="timer-cell">${dur}</td>`;
+      row.innerHTML = `<td>${s.worker_name}</td><td>${pill}</td><td style="font-family:var(--mono);font-size:12px;color:var(--text2);">${s.order_id||'—'}</td><td style="font-size:12px;">${date}</td><td style="font-size:12px;">${startTime}</td><td style="font-size:12px;">${endTime}</td><td class="timer-cell">${dur}</td>`;
       logBody.appendChild(row);
     });
   } catch(e) { console.error('Log error:', e); }
