@@ -1591,7 +1591,12 @@ async function updateUTR() {
     }
 
     const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0,0,0,0);
-    const weekData = data.filter(s => new Date(s.started_at) >= weekStart && s.category === 'Order');
+    // Fetch all week sessions separately (not just today)
+    const { data: weekAllData } = await _supabase.from('sessions')
+      .select('worker_name, category, started_at')
+      .eq('category', 'Order')
+      .gte('started_at', weekStart.toISOString());
+    const weekData = weekAllData || [];
     const weekByWorker = {};
     weekData.forEach(s => { weekByWorker[s.worker_name] = (weekByWorker[s.worker_name] || 0) + 1; });
     const weekEl = document.getElementById('weeklyOrdersBody');
