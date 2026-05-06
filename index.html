@@ -1618,7 +1618,7 @@ async function updateUTR() {
 async function loadLog() {
   try {
     const { data } = await _supabase.from('sessions')
-      .select('*').order('started_at', { ascending: false }).limit(20);
+      .select('*').order('started_at', { ascending: false }).limit(500);
     if (!data) return;
     const logBody = document.getElementById('logBody');
     if (!logBody) return;
